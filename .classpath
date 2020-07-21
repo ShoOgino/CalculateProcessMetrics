@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" output="target/classes" path="src/main/java">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/Graftast-1.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/bcprov-jdk15on-1.61.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/bcpkix-jdk15on-1.61.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jansi-1.18.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/JavaEWAH-1.1.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jline-3.11.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jsch-0.1.55.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/progressbar-0.7.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/bcpg-jdk15on-1.61.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/diff-1.1.11.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jzlib-1.1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/slf4j-api-1.7.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.css-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.javaparser-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.python-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.srcml-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.jdt-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.js-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.ruby-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.antlr3-xml-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.c-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.antlr3-r-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.antlr3-php-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.antlr3-antlr-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.antlr3-json-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/client.diff-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gen.antlr3-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/client-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/core-2.1.3-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/guava-27.0-jre.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javaparser-core-3.13.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javaparser-symbol-solver-core-3.13.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javassist-3.24.0-GA.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/failureaccess-1.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javaparser-symbol-solver-logic-3.13.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javaparser-symbol-solver-model-3.13.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/ph-commons-9.3.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/ph-css-6.1.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/animal-sniffer-annotations-1.17.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/checker-qual-2.5.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/error_prone_annotations-2.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/j2objc-annotations-1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jsr305-3.0.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jrubyparser-0.5.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/rhino-1.7.10.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.jdt.core-3.16.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.text-3.8.100.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.commands-3.9.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.contenttype-3.7.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.jobs-3.10.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.resources-3.13.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.equinox.app-1.4.100.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.equinox.common-3.10.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.equinox.preferences-3.7.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.equinox.registry-3.8.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.osgi-3.13.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.expressions-3.6.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.filesystem-1.7.300.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/org.eclipse.core.runtime-3.15.200.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/antlr-3.5.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/antlr-runtime-3.5.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/ST4-4.0.8.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/asm-3.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/cglib-2.2.1-v20090111.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-util-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/slf4j-api-1.7.25.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-beans-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-context-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-core-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-expression-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-web-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/aopalliance-1.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/commons-io-2.0.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/guice-3.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javax.inject-1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/javax.servlet-api-3.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-client-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-http-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-io-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-security-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-server-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-servlet-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-webapp-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jetty-xml-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jtidy-r938.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/junit-4.8.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/rendersnake-1.9.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/slf4j-nop-1.7.25.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spark-core-2.7.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-aop-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/spring-webmvc-4.1.6.RELEASE.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/websocket-api-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/websocket-client-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/websocket-common-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/websocket-server-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/websocket-servlet-9.4.6.v20170531.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/commons-codec-1.10.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/gson-2.8.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/jgrapht-core-1.0.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/trove4j-3.0.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/classindex-3.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/simmetrics-core-3.2.3.jar"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>
