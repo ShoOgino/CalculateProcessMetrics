@@ -31,6 +31,8 @@ public class Method {
     int elseAdded=0;
     int elseDeleted=0;
 
+    int isBuggy=0;
+
     public Method() {
     }
     public Method(String path) {

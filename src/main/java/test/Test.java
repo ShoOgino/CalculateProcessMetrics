@@ -47,12 +47,15 @@ import com.github.gumtreediff.tree.TreeUtils;
 
 public class Test {
 	public static void main(String[] args) throws IOException {
-		long start = System.currentTimeMillis();
+		//long start = System.currentTimeMillis();
+		Method test= new Method();
+		//test.path="C:/Users/login/work/cassandra_method/src/java/org/apache/cassandra/utils/XMLUtils#XMLUtils(String).mjava";
+		//getProcessMetrics(test, new Project("test", "C:/Users/login/work/cassandra_method"));
 
-		HashMap<String, Method> dataset=getDataset(new Project("test", "C:/Users/login/work/InferBugs/actions/test/testDataset/ant/repository"));
+		HashMap<String, Method> dataset=getDataset(new Project("test", "C:/Users/login/work/cassandra_method"));
 
-		long end = System.currentTimeMillis();
-		System.out.println((end - start)  + "ms");
+		//long end = System.currentTimeMillis();
+		//System.out.println((end - start)  + "ms");
 	}
 
 	private static HashMap<String, Method> getDataset(Project project) throws IOException {
@@ -60,7 +63,10 @@ public class Test {
 	    getCodeMetrics(dataset, project);
 
 	    for(Entry<String, Method> method : dataset.entrySet()) {
+			long start = System.currentTimeMillis();
 	    	getProcessMetrics(method.getValue(), project);
+			long end = System.currentTimeMillis();
+			System.out.println((end - start)  + "ms");
 	    }
 	    return dataset;
 	}
@@ -75,6 +81,10 @@ public class Test {
 
 		ASTParser parser = ASTParser.newParser(AST.JLS11);
 		final Map<String,String> options = JavaCore.getOptions();
+		//caution. to calculateIDMethod http://www.nextdesign.co.jp/tips/tips_eclipse_jdt.html
+		options.put(JavaCore.COMPILER_COMPLIANCE, JavaCore.VERSION_1_6);
+		options.put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, JavaCore.VERSION_1_6);
+		options.put(JavaCore.COMPILER_SOURCE, JavaCore.VERSION_1_6);
 		parser.setCompilerOptions(options);
 		parser.setResolveBindings(true);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
@@ -105,7 +115,7 @@ public class Test {
 	private static String[] getLibraries() {
 		Path[] dirs = new Path[]{
 				Paths.get("C:\\Users\\login\\work\\pleiades\\eclipse\\plugins"),
-				Paths.get("C:\\Users\\login\\work\\ant_file")
+				Paths.get("C:\\Users\\login\\work\\cassandra_file")
 		};
 		List<String> classes=new ArrayList<String>();
 		try {
@@ -123,7 +133,7 @@ public class Test {
 
 
 	private static String[] getSources() {
-		Path rootDir = Paths.get("C:\\Users\\login\\work\\ant_file\\src");
+		Path rootDir = Paths.get("C:\\Users\\login\\work\\cassandra_file\\src");
 		String[] sources = null;
 		try {
 			List<String> test =Files.walk(rootDir)
@@ -140,13 +150,14 @@ public class Test {
 
 	private static void getProcessMetrics(Method method, Project project) throws IOException {
 		List<String> statements = Arrays.asList("AssertStatement","Block","BreakStatement","ConstructorInvocation","ContinueStatement","DoStatement","EmptyStatement","EnhancedForStatement", "ExpressionStatement","ForStatement","IfStatement","LabeledStatement","ReturnStatement","SuperConstructorInvocation","SwitchCase","SwitchStatement","SynchronizedStatement","ThrowStatement","TryStatement","TypeDeclarationStatement","VariableDeclarationStatement","WhileStatement");
-		getHistory(method.history, project.path+"/.git", method.path);
+		List<String> operatorsCondition = Arrays.asList("<", ">", "<=", ">=", "==", "!=", "^", "&", "|", "&&", "||");
+		getHistory(method.history, project.path, method.path.replace("\\", "/"));
 
-		String sourcePrev =  "public class Test{}";
+		String sourcePrev =  "public class Test{public int test(){if(2>1){}else {}} }";
 		String sourceCurrent =null;
 
 		for(Commit commit: method.history.commits) {
-			sourceCurrent="public class Test {"+commit.snapshot+"}";
+			sourceCurrent="public class Test {" + "public int test(){if(2>1){} }"; //+commit.snapshot+"}";
 			JdtTreeGenerator jdtTreeGenerator = new JdtTreeGenerator();
 			ITree iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
 			ITree iTreeCurrent = jdtTreeGenerator.generateFrom().string(sourceCurrent).getRoot();
@@ -154,15 +165,41 @@ public class Test {
 			MappingStore mappings = defaultMatcher.match(iTreePrev, iTreeCurrent);
 			EditScriptGenerator editScriptGenerator = new SimplifiedChawatheScriptGenerator();
 			EditScript actions = editScriptGenerator.computeActions(mappings);
-			System.out.println(commit.snapshot);
+			//System.out.println(commit.snapshot);
 			for(Action action: actions) {
-				System.out.println(action);
+				//System.out.println(action);
 				switch(action.getName()){
 				case "insert-node":{
 					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Insert) action).getNode());
 					while(childs.hasNext()) {
 						if(statements.contains(childs.next().getType().toString())) {
 							commit.stmtAdded++;
+						}
+					}
+					List<ITree> parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString().equals("MethodDeclaration")) {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("InfixExpression")) {
+							List<ITree> childsInfixExpression=parent.getChildren();
+							for(ITree child : childsInfixExpression) {
+								if(child.hasLabel()) {
+								    if(operatorsCondition.contains(child.getLabel().toString())) {
+									    commit.cond++;
+								    }
+								}
+							}
+						}
+					}
+					if(action.getNode().getType().toString().equals("Block")) {
+						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+							commit.elseAdded++;
 						}
 					}
 					break;
@@ -174,6 +211,32 @@ public class Test {
 							commit.stmtAdded++;
 						}
 					}
+					List<ITree> parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString().equals("MethodDeclaration")) {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("InfixExpression")) {
+							List<ITree> childsInfixExpression=parent.getChildren();
+							for(ITree child : childsInfixExpression) {
+								if(child.hasLabel()) {
+								    if(operatorsCondition.contains(child.getLabel().toString())) {
+									    commit.cond++;
+								    }
+								}
+							}
+						}
+					}
+					if(action.getNode().getType().toString().equals("Block")) {
+						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+							commit.elseAdded++;
+						}
+					}
 					break;
 				}
 				case "delete-node":{
@@ -181,6 +244,32 @@ public class Test {
 					while(childs.hasNext()) {
 						if(statements.contains(childs.next().getType().toString())) {
 							commit.stmtDeleted++;
+						}
+					}
+					List<ITree> parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString()=="MethodDeclaration") {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("InfixExpression")) {
+							List<ITree> childsInfixExpression=parent.getChildren();
+							for(ITree child : childsInfixExpression) {
+								if(child.hasLabel()) {
+								    if(operatorsCondition.contains(child.getLabel().toString())) {
+									    commit.cond++;
+								    }
+								}
+							}
+						}
+					}
+					if(action.getNode().getType().toString().equals("Block")) {
+						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+							commit.elseDeleted++;
 						}
 					}
 					break;
@@ -192,12 +281,88 @@ public class Test {
 							commit.stmtDeleted++;
 						}
 					}
+					List<ITree> parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString().equals("MethodDeclaration")) {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("InfixExpression")) {
+							List<ITree> childsInfixExpression=parent.getChildren();
+							for(ITree child : childsInfixExpression) {
+								if(child.hasLabel()) {
+								    if(operatorsCondition.contains(child.getLabel().toString())) {
+									    commit.cond++;
+								    }
+								}
+							}
+						}
+					}
+					if(action.getNode().getType().toString().equals("Block")) {
+						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+							commit.elseDeleted++;
+						}
+					}
 					break;
 				}
 				case "move-tree":{
+					List<ITree> parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString().equals("MethodDeclaration")) {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString().equals("MethodDeclaration")) {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("InfixExpression")) {
+							List<ITree> childsInfixExpression=parent.getChildren();
+							for(ITree child : childsInfixExpression) {
+								if(child.hasLabel()) {
+								    if(operatorsCondition.contains(child.getLabel().toString())) {
+									    commit.cond++;
+								    }
+								}
+							}
+						}
+					}
 					break;
 				}
 				case "update-node":{
+					List<ITree> parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("Block")) {
+							break;
+						}else if(parent.getType().toString().equals("MethodDeclaration")) {
+							commit.decl++;
+						}
+					}
+					parents=action.getNode().getParents();
+					for(ITree parent : parents) {
+						if(parent.getType().toString().equals("InfixExpression")) {
+							List<ITree> childsInfixExpression=parent.getChildren();
+							for(ITree child : childsInfixExpression) {
+								if(child.hasLabel()) {
+								    if(operatorsCondition.contains(child.getLabel().toString())) {
+									    commit.cond++;
+								    }
+								}
+							}
+						}
+					}
 					break;
 				}
 				default:{
@@ -218,11 +383,13 @@ public class Test {
 		method.churn=method.history.commits.stream().mapToInt(e->e.churn).sum();
 		method.maxChurn=method.history.commits.stream().mapToInt(e->e.churn).max().getAsInt();
 		method.avgChurn=method.history.commits.stream().mapToInt(e->e.churn).average().getAsDouble();
+		//System.out.println("test");
 	}
 
 	private static void getHistory(History history, String pathRepository, String pathFile) {
+		pathFile=pathFile.replaceAll(pathRepository+"/", "");
 		try {
-			Repository repository = new FileRepositoryBuilder().setGitDir(new File(pathRepository)).build();
+			Repository repository = new FileRepositoryBuilder().setGitDir(new File(pathRepository+"/.git")).build();
 			final Git git = new Git(repository);
 
 			ObjectId head = repository.resolve("HEAD");

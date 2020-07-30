@@ -1,6 +1,7 @@
 package test;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,11 +21,13 @@ import org.eclipse.jdt.core.dom.Type;
 
 public class Visitor extends ASTVisitor {
 	CompilationUnit file;
+	String path="";
 	ArrayList<Method> methods=new ArrayList<Method>();
 	ArrayList<String> methodsCalled= new ArrayList<String>();
     ArrayList<String> source = new ArrayList<String>();
 
 	public Visitor(CompilationUnit ast, String pathFile) {
+		this.path=pathFile;
 		this.file=ast;
 		try(FileReader fr = new FileReader(pathFile); BufferedReader br = new BufferedReader(fr);){
 			String str = br.readLine();
@@ -107,19 +110,14 @@ public class Visitor extends ASTVisitor {
 
 	@Override
 	public boolean visit(MethodDeclaration node) {
-		String test=node.getName().getIdentifier();
-		if(test.contains("."))
-		    System.out.println(test);
 		if(node.getBody()==null) {
 			return false;
 		}
 
 		Method method = new Method();
-        method.name = new MethodNameGenerator(node).generate();
-        //if(method.name.contains("extends"))
-            System.out.println(method.name);
-
-		//	System.out.println(method.id);
+		method.id=calculateIDMethod(node);
+		method.path = calculatePathMethod(node);
+		System.out.println(method.path);
 
 		VisitorFanout visitorFanout = new VisitorFanout();
 		node.accept(visitorFanout);
@@ -241,7 +239,17 @@ public class Visitor extends ASTVisitor {
 
 
 	public String calculateIDMethod(MethodDeclaration node){
-		String namePackage = node.resolveBinding().getDeclaringClass().getPackage().getName();
+		String namePackage="";
+		if(node.resolveBinding()==null) {
+			System.out.println("");
+			System.out.println("");
+			System.out.println("");
+			System.out.println("");
+			System.out.println(node.getName());
+		}else {
+			namePackage = node.resolveBinding().getDeclaringClass().getPackage().getName();
+		}
+
 		String nameClass="";
 		ITypeBinding classLast = node.resolveBinding().getDeclaringClass();
 		int count=0;
@@ -264,4 +272,40 @@ public class Visitor extends ASTVisitor {
 		}
 		return namePackage + nameClass + "/" + nameMethod + "(" + nameArgment + ")";
 	}
+	public String calculatePathMethod(MethodDeclaration node) {
+
+		String pathMethod="";
+
+
+		File file = new File(path);
+		String dirFile=file.getParent().replaceAll("cassandra_file", "cassandra_method");
+		String nameFile=file.getName().split(".java")[0];
+
+
+		String classMethod="";
+		ArrayList<String> listClass=new ArrayList<String>();
+		ITypeBinding classLast = node.resolveBinding().getDeclaringClass();
+		classMethod=classLast.getName().toString();
+		while(classLast!=null){
+			listClass.add(0, classLast.getName().toString());
+			classLast=classLast.getDeclaringClass();
+		}
+		for(int i=0;i<listClass.size();i++) {
+			String nameClass=listClass.get(i);
+			if(i==0) {
+				if(nameClass.equals(nameFile)) {
+					classMethod=nameClass;
+				}else {
+					classMethod=nameClass+"["+nameFile+"]";
+				}
+			}else {
+				classMethod=classMethod+"."+nameClass;
+			}
+		}
+
+		String nameMethod = new MethodNameGenerator(node).generate();
+
+		pathMethod=dirFile+"\\"+classMethod+"#"+nameMethod+".mjava";
+        return pathMethod;
+    }
 }
