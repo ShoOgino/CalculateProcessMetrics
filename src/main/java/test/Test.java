@@ -1,7 +1,11 @@
 package test;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,7 +15,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -30,6 +33,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.gumtreediff.actions.EditScript;
 import com.github.gumtreediff.actions.EditScriptGenerator;
 import com.github.gumtreediff.actions.SimplifiedChawatheScriptGenerator;
@@ -52,29 +56,87 @@ public class Test {
 		//test.path="C:/Users/login/work/cassandra_method/src/java/org/apache/cassandra/utils/XMLUtils#XMLUtils(String).mjava";
 		//getProcessMetrics(test, new Project("test", "C:/Users/login/work/cassandra_method"));
 
-		HashMap<String, Method> dataset=getDataset(new Project("test", "C:/Users/login/work/cassandra_method"));
+		String release = "3.0";
+		Project project=new Project(release, "C:\\Users\\ShoOgino\\work\\cassandra\\file"+release, "C:\\Users\\ShoOgino\\work\\cassandra\\method");
+		HashMap<String, Method> dataset=getDataset(project);
+
+		String strHistory=readAll("historyWithBugOneline.json");
+		ObjectMapper mapper = new ObjectMapper();
+		HashMap<String, HistoryFile> history = mapper.readValue(strHistory, new TypeReference<HashMap<String, HistoryFile>>() {});
+
+		for(String key: dataset.keySet()) {
+			getProcessMetrics(dataset.get(key),history.get(dataset.get(key).path));
+		}
+		try {
+			File csv = new File(project.id+".csv");
+			BufferedWriter bw = new BufferedWriter(new FileWriter(csv, true));
+			for(String key: dataset.keySet()) {
+				Method method=dataset.get(key);
+				bw.write(
+						method.path + ","+
+						method.isBuggy  + "," +
+						method.fanIN + ","+
+						method.fanOut +","+
+						method.parameters + "," +
+						method.localVar + "," +
+						method.commentRatio +","+
+						method.countPath + ","+
+						method.complexity + "," +
+						method.execStmt + "," +
+						method.maxNesting + "," +
+
+                        method.methodHistories + "," +
+                        method.authors + "," +
+                        method.stmtAdded + "," +
+                        method.maxStmtAdded + "," +
+                        method.avgStmtAdded + "," +
+                        method.stmtDeleted + "," +
+                        method.maxStmtDeleted + "," +
+                        method.avgStmtDeleted + "," +
+                        method.churn + "," +
+                        method.maxChurn + "," +
+                        method.avgChurn + "," +
+                        method.decl + "," +
+                        method.cond + "," +
+                        method.elseAdded + "," +
+                        method.elseDeleted
+				);
+				bw.newLine();
+			}
+			bw.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 
 		//long end = System.currentTimeMillis();
 		//System.out.println((end - start)  + "ms");
 	}
+	public static String readAll(final String path) throws IOException {
+	    return Files.lines(Paths.get(path), Charset.forName("UTF-8"))
+	        .collect(Collectors.joining(System.getProperty("line.separator")));
+	}
+
 
 	private static HashMap<String, Method> getDataset(Project project) throws IOException {
 		HashMap<String, Method> dataset = new HashMap<String, Method>();
-	    getCodeMetrics(dataset, project);
+		getCodeMetrics(dataset, project);
 
-	    for(Entry<String, Method> method : dataset.entrySet()) {
-			long start = System.currentTimeMillis();
-	    	getProcessMetrics(method.getValue(), project);
-			long end = System.currentTimeMillis();
-			System.out.println((end - start)  + "ms");
-	    }
-	    return dataset;
+		//	    for(Entry<String, Method> method : dataset.entrySet()) {
+		//			long start = System.currentTimeMillis();
+		//	    	getProcessMetrics(method.getValue(), project);
+		//			long end = System.currentTimeMillis();
+		//			System.out.println((end - start)  + "ms");
+		//	    }
+		return dataset;
 	}
 
 	private static void getCodeMetrics(HashMap<String, Method> dataset, Project project) {
 		final String[] sourcePathDirs = {};
-		final String[] libs = getLibraries();
-		final String[] sources = getSources(); //{"C:\\Users\\login\\work\\ant\\src\\main\\org\\apache\\tools\\zip\\ZipShort.java"};
+		final String[] libs = getLibraries(project.pathFile);
+		final String[] sources = getSources(project.pathFile); //{"C:\\Users\\login\\work\\ant\\src\\main\\org\\apache\\tools\\zip\\ZipShort.java"};
 		ArrayList<Method> methods;
 
 
@@ -112,46 +174,49 @@ public class Test {
 	}
 
 
-	private static String[] getLibraries() {
+	private static String[] getLibraries(String pathFile) {
 		Path[] dirs = new Path[]{
 				Paths.get("C:\\Users\\login\\work\\pleiades\\eclipse\\plugins"),
-				Paths.get("C:\\Users\\login\\work\\cassandra_file")
+				Paths.get(pathFile)
 		};
 		List<String> classes=new ArrayList<String>();
 		try {
 			for(int i=0;i<dirs.length;i++) {
-    			classes.addAll(Files.walk(dirs[i])
-					.map(Path::toString)
-			        .filter(p -> p.endsWith(".jar"))
-			        .collect(Collectors.toList()));
+				classes.addAll(Files.walk(dirs[i])
+						.map(Path::toString)
+						.filter(p -> p.endsWith(".jar"))
+						.collect(Collectors.toList()));
 			}
-        } catch (IOException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
-        return classes.toArray(new String[classes.size()]);
+		return classes.toArray(new String[classes.size()]);
 	}
 
 
-	private static String[] getSources() {
-		Path rootDir = Paths.get("C:\\Users\\login\\work\\cassandra_file\\src");
+	private static String[] getSources(String pathFile) {
+		Path rootDir = Paths.get(pathFile+"/src");
 		String[] sources = null;
 		try {
 			List<String> test =Files.walk(rootDir)
-				.map(Path::toString)
-				.filter(p -> p.endsWith(".java"))
-				.filter(p -> !p.contains("test"))
-		        .collect(Collectors.toList());
+					.map(Path::toString)
+					.filter(p -> p.endsWith(".java"))
+					//.filter(p -> !p.contains("test"))
+					.collect(Collectors.toList());
 			sources=test.toArray(new String[test.size()]);
-        } catch (IOException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
-        return sources;
+		return sources;
 	}
 
-	private static void getProcessMetrics(Method method, Project project) throws IOException {
+	private static void getProcessMetrics(Method method, HistoryFile historyFile) {
+
+	}
+	private static void getProcessMetrics_(Method method, Project project) throws IOException {
 		List<String> statements = Arrays.asList("AssertStatement","Block","BreakStatement","ConstructorInvocation","ContinueStatement","DoStatement","EmptyStatement","EnhancedForStatement", "ExpressionStatement","ForStatement","IfStatement","LabeledStatement","ReturnStatement","SuperConstructorInvocation","SwitchCase","SwitchStatement","SynchronizedStatement","ThrowStatement","TryStatement","TypeDeclarationStatement","VariableDeclarationStatement","WhileStatement");
 		List<String> operatorsCondition = Arrays.asList("<", ">", "<=", ">=", "==", "!=", "^", "&", "|", "&&", "||");
-		getHistory(method.history, project.path, method.path.replace("\\", "/"));
+		getHistory(method.history, project.pathMethod, method.path.replace("\\", "/"));
 
 		String sourcePrev =  "public class Test{public int test(){if(2>1){}else {}} }";
 		String sourceCurrent =null;
@@ -190,9 +255,9 @@ public class Test {
 							List<ITree> childsInfixExpression=parent.getChildren();
 							for(ITree child : childsInfixExpression) {
 								if(child.hasLabel()) {
-								    if(operatorsCondition.contains(child.getLabel().toString())) {
-									    commit.cond++;
-								    }
+									if(operatorsCondition.contains(child.getLabel().toString())) {
+										commit.cond++;
+									}
 								}
 							}
 						}
@@ -225,9 +290,9 @@ public class Test {
 							List<ITree> childsInfixExpression=parent.getChildren();
 							for(ITree child : childsInfixExpression) {
 								if(child.hasLabel()) {
-								    if(operatorsCondition.contains(child.getLabel().toString())) {
-									    commit.cond++;
-								    }
+									if(operatorsCondition.contains(child.getLabel().toString())) {
+										commit.cond++;
+									}
 								}
 							}
 						}
@@ -260,9 +325,9 @@ public class Test {
 							List<ITree> childsInfixExpression=parent.getChildren();
 							for(ITree child : childsInfixExpression) {
 								if(child.hasLabel()) {
-								    if(operatorsCondition.contains(child.getLabel().toString())) {
-									    commit.cond++;
-								    }
+									if(operatorsCondition.contains(child.getLabel().toString())) {
+										commit.cond++;
+									}
 								}
 							}
 						}
@@ -295,9 +360,9 @@ public class Test {
 							List<ITree> childsInfixExpression=parent.getChildren();
 							for(ITree child : childsInfixExpression) {
 								if(child.hasLabel()) {
-								    if(operatorsCondition.contains(child.getLabel().toString())) {
-									    commit.cond++;
-								    }
+									if(operatorsCondition.contains(child.getLabel().toString())) {
+										commit.cond++;
+									}
 								}
 							}
 						}
@@ -332,9 +397,9 @@ public class Test {
 							List<ITree> childsInfixExpression=parent.getChildren();
 							for(ITree child : childsInfixExpression) {
 								if(child.hasLabel()) {
-								    if(operatorsCondition.contains(child.getLabel().toString())) {
-									    commit.cond++;
-								    }
+									if(operatorsCondition.contains(child.getLabel().toString())) {
+										commit.cond++;
+									}
 								}
 							}
 						}
@@ -356,9 +421,9 @@ public class Test {
 							List<ITree> childsInfixExpression=parent.getChildren();
 							for(ITree child : childsInfixExpression) {
 								if(child.hasLabel()) {
-								    if(operatorsCondition.contains(child.getLabel().toString())) {
-									    commit.cond++;
-								    }
+									if(operatorsCondition.contains(child.getLabel().toString())) {
+										commit.cond++;
+									}
 								}
 							}
 						}
@@ -393,14 +458,14 @@ public class Test {
 			final Git git = new Git(repository);
 
 			ObjectId head = repository.resolve("HEAD");
-	        //List<RevCommit> commitsAll = StreamSupport.stream(git.log().add(head).call().spliterator(), false).collect(Collectors.toList());
-	        List<RevCommit> commitsAll = StreamSupport.stream(git.log().call().spliterator(), false).collect(Collectors.toList());
-	        List<RevCommit> commitsFile = StreamSupport.stream(git.log().addPath(pathFile).call().spliterator(), false).collect(Collectors.toList());
-	        List<RevCommit[]> commitsSet = new ArrayList<RevCommit[]>();
-	        for(RevCommit commitFile: commitsFile) {
-	        	int index=commitsAll.indexOf(commitFile);
-	        	commitsSet.add(new RevCommit[]{commitsAll.get(index+1), commitsAll.get(index)});
-	        }
+			//List<RevCommit> commitsAll = StreamSupport.stream(git.log().add(head).call().spliterator(), false).collect(Collectors.toList());
+			List<RevCommit> commitsAll = StreamSupport.stream(git.log().call().spliterator(), false).collect(Collectors.toList());
+			List<RevCommit> commitsFile = StreamSupport.stream(git.log().addPath(pathFile).call().spliterator(), false).collect(Collectors.toList());
+			List<RevCommit[]> commitsSet = new ArrayList<RevCommit[]>();
+			for(RevCommit commitFile: commitsFile) {
+				int index=commitsAll.indexOf(commitFile);
+				commitsSet.add(new RevCommit[]{commitsAll.get(index+1), commitsAll.get(index)});
+			}
 
 			DiffFormatter diffFormatter = new DiffFormatter(System.out);
 			diffFormatter.setRepository(repository);

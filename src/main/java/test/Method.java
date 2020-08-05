@@ -5,6 +5,9 @@ public class Method {
 	String name="";
 	String path="";
 	History history=new History();
+
+    int isBuggy=0;
+
 	int fanIN=0;
 	int fanOut=0;
     int parameters=0;
@@ -31,7 +34,6 @@ public class Method {
     int elseAdded=0;
     int elseDeleted=0;
 
-    int isBuggy=0;
 
     public Method() {
     }
