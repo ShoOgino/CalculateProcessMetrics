@@ -12,6 +12,9 @@ public class VisitorMaxNesting extends ASTVisitor {
 	public boolean visit(Block node) {
 		VisitorMaxNesting visitor=new VisitorMaxNesting();
 		List<Statement> statements=node.statements();
+		if(statements.size()==0) {
+			maxNesting=0;
+		}
 		for(Statement statement: statements) {
 			statement.accept(visitor);
 			if(maxNesting<=visitor.maxNesting) {

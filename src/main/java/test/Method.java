@@ -2,10 +2,8 @@ package test;
 
 public class Method {
 	String id="";
-	String name="";
 	String path="";
-	History history=new History();
-
+	HistoryFile history=new HistoryFile();
     int isBuggy=0;
 
 	int fanIN=0;
@@ -18,8 +16,8 @@ public class Method {
     int execStmt=0;
     int maxNesting=0;
 
-    int methodHistories=1;
-    int authors=1;
+    int methodHistories=0;
+    int authors=0;
     int stmtAdded=0;
     int maxStmtAdded=0;
     double avgStmtAdded=0;

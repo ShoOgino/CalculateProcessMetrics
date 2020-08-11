@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -203,6 +205,9 @@ public class Visitor extends ASTVisitor {
 	    	    CountLineCode++;
 			}
 		}
+		if(CountLineCode==0) {
+			CountLineCode=1;
+		}
    		return (float) CountLineComment/ (float)CountLineCode;
     }
 
@@ -278,7 +283,13 @@ public class Visitor extends ASTVisitor {
 
 
 		File file = new File(path);
-		String dirFile=file.getParent().replaceAll("cassandra_file", "cassandra_method");
+
+		String regex = "src.+";
+		Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(file.getParent());
+		m.find();
+		String dirFile=m.group();
+
 		String nameFile=file.getName().split(".java")[0];
 
 
@@ -306,6 +317,7 @@ public class Visitor extends ASTVisitor {
 		String nameMethod = new MethodNameGenerator(node).generate();
 
 		pathMethod=dirFile+"\\"+classMethod+"#"+nameMethod+".mjava";
+		pathMethod=pathMethod.replaceAll("\\\\", "/");
         return pathMethod;
     }
 }
