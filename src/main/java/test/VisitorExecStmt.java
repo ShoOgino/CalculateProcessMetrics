@@ -2,7 +2,6 @@ package test;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AssertStatement;
-import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.ContinueStatement;
@@ -31,10 +30,12 @@ public class VisitorExecStmt extends ASTVisitor {
 		execStmt++;
     	return true;
 	}
+	/*
 	public boolean visit(Block node) {
 		execStmt++;
     	return true;
 	}
+	*/
 	public boolean visit(BreakStatement node) {
 		execStmt++;
     	return true;

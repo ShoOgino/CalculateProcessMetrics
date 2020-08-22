@@ -145,6 +145,7 @@ public class Visitor extends ASTVisitor {
 		node.accept(visitorComplexity);
 		method.complexity=visitorComplexity.complexity;
 
+		//need to fix
 		VisitorExecStmt visitorStatement =new VisitorExecStmt();
 		if(node.getBody().statements().size()>0) {
 			((ASTNode) node.getBody().statements().get(0)).accept(visitorStatement);
@@ -277,6 +278,8 @@ public class Visitor extends ASTVisitor {
 		}
 		return namePackage + nameClass + "/" + nameMethod + "(" + nameArgment + ")";
 	}
+
+
 	public String calculatePathMethod(MethodDeclaration node) {
 
 		String pathMethod="";

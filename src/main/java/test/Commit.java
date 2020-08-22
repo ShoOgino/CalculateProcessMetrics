@@ -8,6 +8,8 @@ public class Commit {
 	public boolean isMerge;
 	public String sourceNew;
 	public String sourceOld;
+	public String pathNew;
+	public String pathOld;
 	public String[] bugFix;
 
 	int stmtAdded=0;

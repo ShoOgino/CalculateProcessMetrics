@@ -19,13 +19,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.gumtreediff.actions.EditScript;
 import com.github.gumtreediff.actions.EditScriptGenerator;
@@ -43,18 +44,34 @@ import com.github.gumtreediff.tree.ITree;
 import com.github.gumtreediff.tree.TreeUtils;
 
 public class Test {
-	public static void main(String[] args) throws IOException {
-		//long start = System.currentTimeMillis();
-		Method test= new Method();
-		//test.path="C:/Users/login/work/cassandra_method/src/java/org/apache/cassandra/utils/XMLUtils#XMLUtils(String).mjava";
-		//getProcessMetrics(test, new Project("test", "C:/Users/login/work/cassandra_method"));
+	private static final String idCommitLatest="81f7d184765b4b66d1483305014427da78ff487c";
+	private static final int NOReleases=3;
+	private static int idRelease;
+	private static final String pathProject = "C:/Users/login/work/cassandra";
+	private static final String pathRepositoryMethod = pathProject+"/method";
+	private static String pathRepositoryFile;
+	private static final String pathInfoBug = pathProject+"/infoBug.json";
+	private static final String pathRevision2Date = pathProject + "/revision2Date.json";
+	private static final String pathRelease2Date = pathProject + "/release2Date.json";
+	private static final String pathHistoriesFile = pathProject + "/history.json";
+	private static final String pathPlugins="C:\\Users\\login\\work\\pleiades\\eclipse\\plugins";
+	private static String pathDataset;
+	private static HashMap<String, HistoryFile> historiesFile;
+	private static HashMap<String, Method> dataset;
 
-		String release = "3.0";
-		Project project=new Project(release, "C:\\Users\\login\\work\\cassandra\\file"+release, "C:\\Users\\login\\work\\cassandra\\method");
-		HashMap<String, Method> dataset=getDataset(project);
+	public static void main(String[] args) {
+		for(idRelease=3;idRelease<=NOReleases;idRelease++) {
+			pathRepositoryFile = pathProject+"/file"+idRelease;
+			pathDataset = pathProject+"/"+idRelease+".csv";
+            calculateDataset();
+		}
+	}
 
+
+	private static void calculateDataset() {
 		try {
-			File csv = new File(project.id+".csv");
+			dataset = getDataset();
+			File csv = new File(pathDataset);
 			BufferedWriter bw = new BufferedWriter(new FileWriter(csv, true));
 			for(String key: dataset.keySet()) {
 				Method method=dataset.get(key);
@@ -96,85 +113,84 @@ public class Test {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		//long end = System.currentTimeMillis();
-		//System.out.println((end - start)  + "ms");
 	}
 
 
-	public static String readAll(final String path) throws IOException {
-	    return Files.lines(Paths.get(path), Charset.forName("UTF-8"))
-	        .collect(Collectors.joining(System.getProperty("line.separator")));
-	}
-
-
-	private static HashMap<String, Method> getDataset(Project project) throws IOException {
+	private static HashMap<String, Method> getDataset() throws IOException {
 		HashMap<String, Method> dataset = new HashMap<String, Method>();
-		getCodeMetrics(dataset, project);
-		String strHistory=readAll("C:\\Users\\login\\work\\cassandra\\historyWithBugOneline.json");
-		ObjectMapper mapper = new ObjectMapper();
-		HashMap<String, HistoryFile> history = mapper.readValue(strHistory, new TypeReference<HashMap<String, HistoryFile>>() {});
-		int count=0;
-		int allFiles=dataset.size();
-		int dateFrom=1378219089;
-		int dateUntil=1446838714;
-		for(String key: dataset.keySet()) {
-			count++;
-			System.out.println(count+"/"+allFiles);
-			ArrayList<String> sources=new ArrayList<String>();
-			Set<String> authors = new HashSet<String>();
-			int NOSources=0;
-			HistoryFile tmp = history.get(key);
-			if(tmp==null) {
-				System.out.println(key);
-				continue;
-			}
-			for(int i=tmp.commits.size()-1;0<=i;i--) {
-				Commit commit=tmp.commits.get(i);
-				if(StringUtils.equals(commit.sourceOld,commit.sourceNew)) {
-					continue;
-				}
-				if(dateFrom<commit.date & commit.date<dateUntil){
-					sources.add(0, commit.sourceNew);
-					authors.add(commit.author);
-				}
-			}
-			while(!tmp.pathOld.equals("/dev/null")) {
-				tmp=history.get(tmp.pathOld);
-				for(int i=tmp.commits.size()-1;0<=i;i--) {
-					Commit commit=tmp.commits.get(i);
-					if(StringUtils.equals(commit.sourceOld, commit.sourceNew)) {
-						continue;
-					}
-					if(dateFrom<commit.date & commit.date<dateUntil) {
-						sources.add(0, commit.sourceNew);
-						authors.add(commit.author);
-					}
-				}
-			}
-			tmp = history.get(key);
-
-			getProcessMetrics(dataset.get(key),sources.toArray(new String[sources.size()]));
-			dataset.get(key).authors=authors.size();
-		}
-
-
-		//	    for(Entry<String, Method> method : dataset.entrySet()) {
-		//			long start = System.currentTimeMillis();
-		//	    	getProcessMetrics(method.getValue(), project);
-		//			long end = System.currentTimeMillis();
-		//			System.out.println((end - start)  + "ms");
-		//	    }
+		getCodeMetrics(dataset);
+		getProcessMetrics(dataset);
+		//getIsBuggy(dataset);
 		return dataset;
 	}
 
-	private static void getCodeMetrics(HashMap<String, Method> dataset, Project project) {
+
+    private static void getIsBuggy(HashMap<String, Method> dataset) {
+		String strHistory=readAll(pathHistoriesFile);
+		String strRelease2Date=readAll(pathRelease2Date);
+		String strRevision2Date=readAll(pathRevision2Date);
+		ObjectMapper mapper = new ObjectMapper();
+		HashMap<String, HistoryFile> history = null;
+		HashMap<String, Integer> release2Date=null;
+		HashMap<String, Integer> revision2Date=null;
+		try {
+			history = mapper.readValue(strHistory, new TypeReference<HashMap<String, HistoryFile>>() {});
+			release2Date=mapper.readValue(strRelease2Date, new TypeReference<HashMap<String, Integer>>() {});
+			revision2Date=mapper.readValue(strRevision2Date, new TypeReference<HashMap<String, Integer>>() {});
+		} catch (JsonParseException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		int count=0;
+		int allFiles=dataset.size();
+		int dateRelease=release2Date.get(Integer.toString(idRelease));
+
+		HistoryFile tmp=null;
+		List<Commit> commits=new ArrayList<Commit>();
+		for(String key: dataset.keySet()) {
+			count++;
+			System.out.println(count+"/"+allFiles);
+			tmp=history.get(key);
+			if(tmp==null)continue;
+			int i=0;
+			do{
+				if(tmp.commits.get(i).date  < release2Date.get(Integer.toString(idRelease-1))
+						| release2Date.get(Integer.toString(idRelease))<tmp.commits.get(i).date
+						| commits.get(0).date < tmp.commits.get(i).date) {
+					i++;
+				}
+				else {
+			        if(tmp.commits.get(i).type==4 & tmp.commits.get(i).pathNew!=null) {
+		    		    tmp=history.get(tmp.commits.get(i).pathNew);
+    		    		i=0;
+		    	    }
+		    	    commits.add(tmp.commits.get(i));
+		    	    i++;
+				}
+		    }while(i<tmp.commits.size());
+			for(Commit commit: commits) {
+				if(commit.bugFix!=null) {
+				for(String idRevision: commit.bugFix) {
+					if(revision2Date.get(idRevision) <release2Date.get(Integer.toString(idRelease))
+							& release2Date.get(Integer.toString(idRelease))<commit.date) {
+						dataset.get(key).isBuggy=1;
+					}
+				}
+				}
+			}
+		}
+    }
+
+
+	private static void getCodeMetrics(HashMap<String, Method> dataset) {
 		final String[] sourcePathDirs = {};
-		final String[] libs = getLibraries(project.pathFile);
-		final String[] sources = getSources(project.pathFile); //{"C:\\Users\\login\\work\\ant\\src\\main\\org\\apache\\tools\\zip\\ZipShort.java"};
+		final String[] libs = getLibraries(pathRepositoryFile);
+		final String[] sources = getSources(pathRepositoryFile);
+
 		ArrayList<Method> methods;
-
-
 
 		ASTParser parser = ASTParser.newParser(AST.JLS11);
 		final Map<String,String> options = JavaCore.getOptions();
@@ -211,7 +227,7 @@ public class Test {
 
 	private static String[] getLibraries(String pathFile) {
 		Path[] dirs = new Path[]{
-				Paths.get("C:\\Users\\login\\work\\pleiades\\eclipse\\plugins"),
+				Paths.get(pathPlugins),
 				Paths.get(pathFile)
 		};
 		List<String> classes=new ArrayList<String>();
@@ -245,596 +261,394 @@ public class Test {
 		return sources;
 	}
 
-	private static void getProcessMetrics(Method method, String[] sources) throws IOException {
-		if(sources.length==0) {
-			return;
-		}
-		List<String> statements = Arrays.asList("AssertStatement","Block","BreakStatement","ConstructorInvocation","ContinueStatement","DoStatement","EmptyStatement","EnhancedForStatement", "ExpressionStatement","ForStatement","IfStatement","LabeledStatement","ReturnStatement","SuperConstructorInvocation","SwitchCase","SwitchStatement","SynchronizedStatement","ThrowStatement","TryStatement","TypeDeclarationStatement","VariableDeclarationStatement","WhileStatement");
-		List<String> operatorsCondition = Arrays.asList("<", ">", "<=", ">=", "==", "!=", "^", "&", "|", "&&", "||");
 
-		JdtTreeGenerator jdtTreeGenerator = new JdtTreeGenerator();
-		String sourcePrev =  "public class Test{}";
-		ITree iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
-		String sourceCurrent =null;
-		ITree iTreeCurrent=null;
-        int methodHistories=sources.length;
-    	int[] stmtAdded= new int[methodHistories];
-        Arrays.fill(stmtAdded, 0);
-    	int[] stmtDeleted= new int[methodHistories];
-        Arrays.fill(stmtDeleted, 0);
-    	int[] churn= new int[methodHistories];
-        Arrays.fill(churn, 0);
-    	int[] decl= new int[methodHistories];
-        Arrays.fill(decl, 0);
-    	int[] cond= new int[methodHistories];
-        Arrays.fill(cond, 0);
-    	int[] elseAdded= new int[methodHistories];
-        Arrays.fill(elseAdded, 0);
-    	int[] elseDeleted= new int[methodHistories];
-        Arrays.fill(elseDeleted, 0);
-
-		for(int i=0;i<sources.length;i++) {
-			sourceCurrent="public class Test {"+sources[i]+"}";
-			iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
-			iTreeCurrent = jdtTreeGenerator.generateFrom().string(sourceCurrent).getRoot();
-			Matcher defaultMatcher = Matchers.getInstance().getMatcher();
-			MappingStore mappings = defaultMatcher.match(iTreePrev, iTreeCurrent);
-			EditScriptGenerator editScriptGenerator = new SimplifiedChawatheScriptGenerator();
-			EditScript actions = editScriptGenerator.computeActions(mappings);
-			List<Action> listAction = new ArrayList<>();
-			actions.iterator().forEachRemaining(listAction::add);
-			listAction.sort((a, b)->a.getNode().getPos()-b.getNode().getPos());
-			int[] rangeInserted=new int[2];
-			int[] rangeDeleted=new int[2];
-			for(Action action: listAction) {
-				//System.out.println(action);
-				switch(action.getName()){
-				case "insert-node":{
-					if(rangeInserted[0]<=action.getNode().getPos() & action.getNode().getEndPos()<=rangeInserted[1]) {
-						break;
-					}
-					//if(statements.contains(action.getNode().getType().toString())) {
-					//	stmtAdded[i]++;
-					//}
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Insert) action).getNode());
-					while(childs.hasNext()) {
-						String target=childs.next().getType().toString();
-						if(statements.contains(target)) {
-							stmtAdded[i]++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										cond[i]++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							elseAdded[i]++;
-						}
-					}
-					rangeInserted[0]=action.getNode().getPos();
-					rangeInserted[1]=action.getNode().getEndPos();
-					break;
-				}
-				case "insert-tree":{
-					if(rangeInserted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeInserted[1]) {
-						break;
-					}
-					//if(statements.contains(action.getNode().getType().toString())) {
-					//	stmtAdded[i]++;
-					//}
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeInsert) action).getNode());
-					while(childs.hasNext()) {
-						String target=childs.next().getType().toString();
-						if(statements.contains(target)) {
-							stmtAdded[i]++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										cond[i]++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							elseAdded[i]++;
-						}
-					}
-					rangeInserted[0]=action.getNode().getPos();
-					rangeInserted[1]=action.getNode().getEndPos();
-					break;
-				}
-				case "delete-node":{
-					if(rangeDeleted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeDeleted[1]) {
-						break;
-					}
-					//if(statements.contains(action.getNode().getType().toString())) {
-					//	stmtDeleted[i]++;
-					//}
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Delete) action).getNode());
-					while(childs.hasNext()) {
-						String target=childs.next().getType().toString();
-						if(statements.contains(target)) {
-							stmtDeleted[i]++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString()=="MethodDeclaration") {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										cond[i]++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							elseDeleted[i]++;
-						}
-					}
-					rangeDeleted[0]=action.getNode().getPos();
-					rangeDeleted[1]=action.getNode().getEndPos();
-					break;
-				}
-				case "delete-tree":{
-					if(rangeDeleted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeDeleted[1]) {
-						break;
-					}
-					//if(statements.contains(action.getNode().getType().toString())) {
-					//	stmtDeleted[i]++;
-					//}
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeDelete) action).getNode());
-					while(childs.hasNext()) {
-						String target=childs.next().getType().toString();
-						if(statements.contains(target)) {
-							stmtDeleted[i]++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										cond[i]++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							elseDeleted[i]++;
-						}
-					}
-					rangeDeleted[0]=action.getNode().getPos();
-					rangeDeleted[1]=action.getNode().getEndPos();
-					break;
-				}
-				case "move-tree":{
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										cond[i]++;
-									}
-								}
-							}
-						}
-					}
-					break;
-				}
-				case "update-node":{
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							decl[i]++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										cond[i]++;
-									}
-								}
-							}
-						}
-					}
-					break;
-				}
-				default:{
-					break;
-				}
-				}
-			}
-
-			sourcePrev=sourceCurrent;
-			churn[i]=stmtAdded[i]-stmtDeleted[i];
-		}
-		method.methodHistories=methodHistories;
-		method.stmtAdded=Arrays.stream(stmtAdded).sum();
-		method.maxStmtAdded=Arrays.stream(stmtAdded).max().getAsInt();
-		method.avgStmtAdded=method.stmtAdded/(float)methodHistories;
-		method.stmtDeleted=Arrays.stream(stmtDeleted).sum();
-		method.maxStmtDeleted=Arrays.stream(stmtDeleted).max().getAsInt();
-		method.avgStmtDeleted=method.stmtDeleted/(float)methodHistories;
-		method.churn=Arrays.stream(churn).sum();
-		method.maxChurn=Arrays.stream(churn).max().getAsInt();
-		method.avgChurn=method.churn/(float)methodHistories;
-		method.decl=Arrays.stream(decl).sum();
-		method.cond=Arrays.stream(cond).sum();
-		method.elseAdded=Arrays.stream(elseAdded).sum();
-		method.elseDeleted=Arrays.stream(elseDeleted).sum();
-		//System.out.println("tset");
-	}
-	/*
-	private static void getProcessMetrics_(Method method, Project project) throws IOException {
-		List<String> statements = Arrays.asList("AssertStatement","Block","BreakStatement","ConstructorInvocation","ContinueStatement","DoStatement","EmptyStatement","EnhancedForStatement", "ExpressionStatement","ForStatement","IfStatement","LabeledStatement","ReturnStatement","SuperConstructorInvocation","SwitchCase","SwitchStatement","SynchronizedStatement","ThrowStatement","TryStatement","TypeDeclarationStatement","VariableDeclarationStatement","WhileStatement");
-		List<String> operatorsCondition = Arrays.asList("<", ">", "<=", ">=", "==", "!=", "^", "&", "|", "&&", "||");
-		getHistory(method.history, project.pathMethod, method.path.replace("\\", "/"));
-
-		String sourcePrev =  "public class Test{public int test(){if(2>1){}else {}} }";
-		String sourceCurrent =null;
-
-		for(Commit commit: method.history.commits) {
-			sourceCurrent="public class Test {" + "public int test(){if(2>1){} }"; //+commit.snapshot+"}";
-			JdtTreeGenerator jdtTreeGenerator = new JdtTreeGenerator();
-			ITree iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
-			ITree iTreeCurrent = jdtTreeGenerator.generateFrom().string(sourceCurrent).getRoot();
-			Matcher defaultMatcher = Matchers.getInstance().getMatcher();
-			MappingStore mappings = defaultMatcher.match(iTreePrev, iTreeCurrent);
-			EditScriptGenerator editScriptGenerator = new SimplifiedChawatheScriptGenerator();
-			EditScript actions = editScriptGenerator.computeActions(mappings);
-			//System.out.println(commit.snapshot);
-			for(Action action: actions) {
-				//System.out.println(action);
-				switch(action.getName()){
-				case "insert-node":{
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Insert) action).getNode());
-					while(childs.hasNext()) {
-						if(statements.contains(childs.next().getType().toString())) {
-							commit.stmtAdded++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										commit.cond++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							commit.elseAdded++;
-						}
-					}
-					break;
-				}
-				case "insert-tree":{
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeInsert) action).getNode());
-					while(childs.hasNext()) {
-						if(statements.contains(childs.next().getType().toString())) {
-							commit.stmtAdded++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										commit.cond++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							commit.elseAdded++;
-						}
-					}
-					break;
-				}
-				case "delete-node":{
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Delete) action).getNode());
-					while(childs.hasNext()) {
-						if(statements.contains(childs.next().getType().toString())) {
-							commit.stmtDeleted++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString()=="MethodDeclaration") {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										commit.cond++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							commit.elseDeleted++;
-						}
-					}
-					break;
-				}
-				case "delete-tree":{
-					Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeDelete) action).getNode());
-					while(childs.hasNext()) {
-						if(statements.contains(childs.next().getType().toString())) {
-							commit.stmtDeleted++;
-						}
-					}
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										commit.cond++;
-									}
-								}
-							}
-						}
-					}
-					if(action.getNode().getType().toString().equals("Block")) {
-						if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-							commit.elseDeleted++;
-						}
-					}
-					break;
-				}
-				case "move-tree":{
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										commit.cond++;
-									}
-								}
-							}
-						}
-					}
-					break;
-				}
-				case "update-node":{
-					List<ITree> parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("Block")) {
-							break;
-						}else if(parent.getType().toString().equals("MethodDeclaration")) {
-							commit.decl++;
-						}
-					}
-					parents=action.getNode().getParents();
-					for(ITree parent : parents) {
-						if(parent.getType().toString().equals("InfixExpression")) {
-							List<ITree> childsInfixExpression=parent.getChildren();
-							for(ITree child : childsInfixExpression) {
-								if(child.hasLabel()) {
-									if(operatorsCondition.contains(child.getLabel().toString())) {
-										commit.cond++;
-									}
-								}
-							}
-						}
-					}
-					break;
-				}
-				default:{
-					break;
-				}
-				}
-			}
-			sourcePrev="public class Test {"+commit.snapshot+"}";
-		}
-		method.methodHistories=method.history.snapshots.size();
-		method.authors=(int) method.history.commits.stream().map(e->e.author).count();
-		method.stmtAdded=method.history.commits.stream().mapToInt(e->e.stmtAdded).sum();
-		method.maxStmtAdded=method.history.commits.stream().mapToInt(e->e.stmtAdded).max().getAsInt();
-		method.avgStmtAdded=method.history.commits.stream().mapToInt(e->e.stmtAdded).average().getAsDouble();
-		method.stmtDeleted=method.history.commits.stream().mapToInt(e->e.stmtDeleted).max().getAsInt();
-		method.maxStmtDeleted=method.history.commits.stream().mapToInt(e->e.stmtDeleted).max().getAsInt();
-		method.avgStmtDeleted=method.history.commits.stream().mapToInt(e->e.stmtDeleted).average().getAsDouble();
-		method.churn=method.history.commits.stream().mapToInt(e->e.churn).sum();
-		method.maxChurn=method.history.commits.stream().mapToInt(e->e.churn).max().getAsInt();
-		method.avgChurn=method.history.commits.stream().mapToInt(e->e.churn).average().getAsDouble();
-		//System.out.println("test");
-	}
-	*/
-	/*
-	private static void getHistory(History history, String pathRepository, String pathFile) {
-		pathFile=pathFile.replaceAll(pathRepository+"/", "");
+	private static void getProcessMetrics(HashMap<String, Method> dataset) {
+		String strHistory=readAll(pathHistoriesFile);
+		String strRelease2Date=readAll(pathRelease2Date);
+		ObjectMapper mapper = new ObjectMapper();
+		HashMap<String, HistoryFile> history = null;
+		HashMap<String, Integer> release2Date=null;
 		try {
-			Repository repository = new FileRepositoryBuilder().setGitDir(new File(pathRepository+"/.git")).build();
-			final Git git = new Git(repository);
-
-			ObjectId head = repository.resolve("HEAD");
-			//List<RevCommit> commitsAll = StreamSupport.stream(git.log().add(head).call().spliterator(), false).collect(Collectors.toList());
-			List<RevCommit> commitsAll = StreamSupport.stream(git.log().call().spliterator(), false).collect(Collectors.toList());
-			List<RevCommit> commitsFile = StreamSupport.stream(git.log().addPath(pathFile).call().spliterator(), false).collect(Collectors.toList());
-			List<RevCommit[]> commitsSet = new ArrayList<RevCommit[]>();
-			for(RevCommit commitFile: commitsFile) {
-				int index=commitsAll.indexOf(commitFile);
-				commitsSet.add(new RevCommit[]{commitsAll.get(index+1), commitsAll.get(index)});
-			}
-
-			DiffFormatter diffFormatter = new DiffFormatter(System.out);
-			diffFormatter.setRepository(repository);
-
-			for (RevCommit[] commitSet : commitsSet) {
-				List<DiffEntry> list = diffFormatter.scan(commitSet[0].getTree(), commitSet[1].getTree());
-				for (DiffEntry diffEntry : list) {
-					if (diffEntry.getNewPath().equals(pathFile)) {
-						Commit commit=new Commit();
-						if (diffEntry.getChangeType() != DiffEntry.ChangeType.DELETE) {
-							commit.id=commitSet[1].toObjectId().getName();
-							commit.author=commitSet[0].getAuthorIdent().getName();
-							String str;
-							ObjectLoader loader = repository.open(diffEntry.getNewId().toObjectId());
-							str = new String(loader.getBytes());
-							commit.snapshot=str;
-							//System.out.println(str);
-						}
-						if (diffEntry.getChangeType() == DiffEntry.ChangeType.RENAME) {
-							pathFile = diffEntry.getOldPath();
-						}
-						history.commits.add(commit);
-					}
-				}
-			}
+			history = mapper.readValue(strHistory, new TypeReference<HashMap<String, HistoryFile>>() {});
+			release2Date=mapper.readValue(strRelease2Date, new TypeReference<HashMap<String, Integer>>() {});
+		} catch (JsonParseException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} catch (NoHeadException e) {
-			e.printStackTrace();
-		} catch (GitAPIException e) {
+		}
+		int count=0;
+		int allFiles=dataset.size();
+		int dateFrom=release2Date.get(Integer.toString(idRelease-1));
+		int dateUntil=release2Date.get(Integer.toString(idRelease));
+
+
+		HistoryFile tmp=null;
+		List<Commit> commits=null;
+		for(String key: dataset.keySet()) {
+			commits=new ArrayList<Commit>();
+			//if(!key.equals("src/java/org/apache/cassandra/db/commitlog/CommitLog.LogRecordAdder#run().mjava"))continue;
+			count++;
+			System.out.println(count+"/"+allFiles);
+			System.out.println(key);
+			tmp=history.get(key);
+			if(tmp==null)continue;
+			tmp.commits.sort((a, b)->a.date-b.date);
+			int i=tmp.commits.size()-1;
+			do{
+				if(tmp.commits.get(i).date  < release2Date.get(Integer.toString(idRelease-1))
+					| release2Date.get(Integer.toString(idRelease))<tmp.commits.get(i).date
+					| (0<commits.size() && commits.get(0).date < tmp.commits.get(i).date)) {
+					i--;
+				}else {
+					if(tmp.commits.get(i).type==0) {
+						commits.add(0,tmp.commits.get(i));
+				        commits.get(0).isMerge=false;
+						break;
+					}
+			        if(tmp.commits.get(i).type==1) {
+				        commits.add(0,tmp.commits.get(i));
+    		    		tmp=history.get(tmp.commits.get(i).pathOld);
+    					tmp.commits.sort((a, b)->a.date-b.date);
+		    		    i=tmp.commits.size()-1;
+		    	    }else {
+			            commits.add(0, tmp.commits.get(i));
+		    	        i--;
+		    	    }
+				}
+		    }while(0<=i);
+			getA(dataset.get(key), commits);
+		}
+	}
+
+
+	private static void getA(Method method, List<Commit> commits){
+		Set<String> authors = new HashSet<String>();
+
+		try {
+			int methodHistories=0;
+			ArrayList<Integer> stmtAddeds = new ArrayList<Integer>();
+			ArrayList<Integer> stmtDeleteds = new ArrayList<Integer>();
+			ArrayList<Integer> churns = new ArrayList<Integer>();
+			ArrayList<Integer> decls = new ArrayList<Integer>();
+			ArrayList<Integer> conds = new ArrayList<Integer>();
+			ArrayList<Integer> elseAddeds = new ArrayList<Integer>();
+			ArrayList<Integer> elseDeleteds = new ArrayList<Integer>();
+
+			List<String> statements = Arrays.asList("AssertStatement","BreakStatement","ConstructorInvocation","ContinueStatement","DoStatement","EnhancedForStatement", "ExpressionStatement","ForStatement","IfStatement","ReturnStatement","SuperConstructorInvocation","SwitchStatement","ThrowStatement","TryStatement","WhileStatement");
+			List<String> operatorsCondition = Arrays.asList("<", ">", "<=", ">=", "==", "!=", "^", "&", "|", "&&", "||");
+
+			JdtTreeGenerator jdtTreeGenerator = new JdtTreeGenerator();
+			String sourcePrev =  null;
+			String sourceCurrent =null;
+			ITree iTreePrev = null;
+			ITree iTreeCurrent=null;
+
+			for(int i=0;i<commits.size();i++) {
+				if(commits.get(i).type==4|commits.get(i).isMerge)continue;
+				sourcePrev= "public class Test{"+commits.get(i).sourceOld+"}";
+				sourceCurrent ="public class Test{"+commits.get(i).sourceNew+"}";
+				iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
+				iTreeCurrent = jdtTreeGenerator.generateFrom().string(sourceCurrent).getRoot();
+				Matcher defaultMatcher = Matchers.getInstance().getMatcher();
+				MappingStore mappings = defaultMatcher.match(iTreePrev, iTreeCurrent);
+				EditScriptGenerator editScriptGenerator = new SimplifiedChawatheScriptGenerator();
+				EditScript actions = editScriptGenerator.computeActions(mappings);
+				List<Action> listAction = new ArrayList<>();
+				actions.iterator().forEachRemaining(listAction::add);
+				listAction.sort((a, b)->a.getNode().getPos()-b.getNode().getPos());
+				int[] rangeInserted=new int[2];
+				int[] rangeDeleted=new int[2];
+				if(listAction.size()==0)continue;
+				authors.add(commits.get(i).author);
+				int stmtAdded=0;
+				int stmtDeleted=0;
+				int churn=0;
+				int decl=0;
+				int cond=0;
+				int elseAdded=0;
+				int elseDeleted=0;
+				for(Action action: listAction) {
+					switch(action.getName()){
+					case "insert-node":{
+						if(rangeInserted[0]<=action.getNode().getPos() & action.getNode().getEndPos()<=rangeInserted[1]) {
+							break;
+						}
+						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Insert) action).getNode());
+						while(childs.hasNext()) {
+							ITree child=childs.next();
+							if(statements.contains(child.getType().toString())) {
+								stmtAdded++;
+							}
+							if(child.getType().toString().equals("IfStatement")) {
+								if(child.getChildren().size()==3) {
+								    elseAdded++;
+								}
+							    if(child.getParent().getType().toString().equals("IfStatement")) {
+							        elseAdded++;
+						        }
+							}
+						}
+						List<ITree> parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("Block")) {
+								break;
+							}else if(parent.getType().toString().equals("MethodDeclaration")) {
+								decl++;
+							}
+						}
+						parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("InfixExpression")) {
+								List<ITree> childsInfixExpression=parent.getChildren();
+								for(ITree child : childsInfixExpression) {
+									if(child.hasLabel()) {
+										if(operatorsCondition.contains(child.getLabel().toString())) {
+											cond++;
+										}
+									}
+								}
+							}
+						}
+						if(action.getNode().getType().toString().equals("Block")) {
+							if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+								elseAdded++;
+							}
+						}
+						rangeInserted[0]=action.getNode().getPos();
+						rangeInserted[1]=action.getNode().getEndPos();
+						break;
+					}
+					case "insert-tree":{
+						if(rangeInserted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeInserted[1]) {
+							break;
+						}
+						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeInsert) action).getNode());
+						while(childs.hasNext()) {
+							ITree child=childs.next();
+							if(statements.contains(child.getType().toString())) {
+								stmtAdded++;
+							}
+							if(child.getType().toString().equals("IfStatement")) {
+								if(child.getChildren().size()==3) {
+								    elseAdded++;
+								}
+							    if(child.getParent().getType().toString().equals("IfStatement")) {
+							        elseAdded++;
+						        }
+							}
+						}
+						List<ITree> parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("Block")) {
+								break;
+							}else if(parent.getType().toString().equals("MethodDeclaration")) {
+								decl++;
+							}
+						}
+						parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("InfixExpression")) {
+								List<ITree> childsInfixExpression=parent.getChildren();
+								for(ITree child : childsInfixExpression) {
+									if(child.hasLabel()) {
+										if(operatorsCondition.contains(child.getLabel().toString())) {
+											cond++;
+										}
+									}
+								}
+							}
+						}
+						rangeInserted[0]=action.getNode().getPos();
+						rangeInserted[1]=action.getNode().getEndPos();
+						break;
+					}
+					case "delete-node":{
+						if(rangeDeleted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeDeleted[1]) {
+							break;
+						}
+						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Delete) action).getNode());
+						while(childs.hasNext()) {
+							ITree child=childs.next();
+							if(statements.contains(child.getType().toString())) {
+								stmtDeleted++;
+							}
+							if(child.getType().toString().equals("IfStatement")) {
+								if(child.getChildren().size()==3) {
+								    elseDeleted++;
+								}
+							    if(child.getParent().getType().toString().equals("IfStatement")) {
+							        elseDeleted++;
+						        }
+							}
+						}
+						List<ITree> parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("Block")) {
+								break;
+							}else if(parent.getType().toString()=="MethodDeclaration") {
+								decl++;
+							}
+						}
+						parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("InfixExpression")) {
+								List<ITree> childsInfixExpression=parent.getChildren();
+								for(ITree child : childsInfixExpression) {
+									if(child.hasLabel()) {
+										if(operatorsCondition.contains(child.getLabel().toString())) {
+											cond++;
+										}
+									}
+								}
+							}
+						}
+						rangeDeleted[0]=action.getNode().getPos();
+						rangeDeleted[1]=action.getNode().getEndPos();
+						break;
+					}
+					case "delete-tree":{
+						if(rangeDeleted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeDeleted[1]) {
+							break;
+						}
+						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeDelete) action).getNode());
+						while(childs.hasNext()) {
+							ITree child=childs.next();
+							if(statements.contains(child.getType().toString())) {
+								stmtDeleted++;
+							}
+							if(child.getType().toString().equals("IfStatement")) {
+								if(child.getChildren().size()==3) {
+								    elseDeleted++;
+								}
+							    if(child.getParent().getType().toString().equals("IfStatement")) {
+							        elseDeleted++;
+						        }
+							}
+						}
+						List<ITree> parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("Block")) {
+								break;
+							}else if(parent.getType().toString().equals("MethodDeclaration")) {
+								decl++;
+							}
+						}
+						parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("InfixExpression")) {
+								List<ITree> childsInfixExpression=parent.getChildren();
+								for(ITree child : childsInfixExpression) {
+									if(child.hasLabel()) {
+										if(operatorsCondition.contains(child.getLabel().toString())) {
+											cond++;
+										}
+									}
+								}
+							}
+						}
+						if(action.getNode().getType().toString().equals("Block")) {
+							if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+								elseDeleted++;
+							}
+						}
+						rangeDeleted[0]=action.getNode().getPos();
+						rangeDeleted[1]=action.getNode().getEndPos();
+						break;
+					}
+					case "move-tree":{
+						List<ITree> parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("Block")) {
+								break;
+							}else if(parent.getType().toString().equals("MethodDeclaration")) {
+								decl++;
+							}
+						}
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("InfixExpression")) {
+								List<ITree> childsInfixExpression=parent.getChildren();
+								for(ITree child : childsInfixExpression) {
+									if(child.hasLabel()) {
+										if(operatorsCondition.contains(child.getLabel().toString())) {
+											cond++;
+										}
+									}
+								}
+							}
+						}
+						break;
+					}
+					case "update-node":{
+						List<ITree> parents=action.getNode().getParents();
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("Block")) {
+								break;
+							}else if(parent.getType().toString().equals("MethodDeclaration")) {
+								decl++;
+							}
+						}
+						for(ITree parent : parents) {
+							if(parent.getType().toString().equals("InfixExpression")) {
+								List<ITree> childsInfixExpression=parent.getChildren();
+								for(ITree child : childsInfixExpression) {
+									if(child.hasLabel()) {
+										if(operatorsCondition.contains(child.getLabel().toString())) {
+											cond++;
+										}
+									}
+								}
+							}
+						}
+						break;
+					}
+					default:{
+						break;
+					}
+					}
+				}
+				churn=stmtAdded-stmtDeleted;
+				methodHistories++;
+				stmtAddeds.add(stmtAdded);
+				stmtDeleteds.add(stmtDeleted);
+				churns.add(churn);
+				decls.add(decl);
+				conds.add(cond);
+				elseAddeds.add(elseAdded);
+				elseDeleteds.add(elseDeleted);
+			}
+			if(methodHistories==0)return;
+			method.methodHistories=methodHistories;
+			method.authors=authors.size();
+			method.stmtAdded=stmtAddeds.stream().mapToInt(e->e).sum();
+			method.maxStmtAdded=stmtAddeds.stream().mapToInt(e->e).max().getAsInt();
+			method.avgStmtAdded=method.stmtAdded/(float)methodHistories;
+			method.stmtDeleted=stmtDeleteds.stream().mapToInt(e->e).sum();
+			method.maxStmtDeleted=stmtDeleteds.stream().mapToInt(e->e).max().getAsInt();
+			method.avgStmtDeleted=method.stmtDeleted/(float)methodHistories;
+			method.churn=churns.stream().mapToInt(e->e).sum();
+			method.maxChurn=churns.stream().mapToInt(e->e).max().getAsInt();
+			method.avgChurn=method.churn/(float)methodHistories;
+			method.decl=decls.stream().mapToInt(e->e).sum();
+			method.cond=conds.stream().mapToInt(e->e).sum();
+			method.elseAdded=elseAddeds.stream().mapToInt(e->e).sum();
+			method.elseDeleted=elseDeleteds.stream().mapToInt(e->e).sum();
+			//System.out.println("tset");
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	*/
 
 
+	public static String readAll(final String path){
+		String value=null;
+	    try {
+	    	value = Files.lines(Paths.get(path), Charset.forName("UTF-8")).collect(Collectors.joining(System.getProperty("line.separator")));
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally{
+			return value;
+		}
+	}
 }
