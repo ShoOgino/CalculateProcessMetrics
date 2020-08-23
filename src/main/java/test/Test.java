@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -41,6 +42,7 @@ import com.github.gumtreediff.actions.SimplifiedChawatheScriptGenerator;
 import com.github.gumtreediff.actions.model.Action;
 import com.github.gumtreediff.actions.model.Delete;
 import com.github.gumtreediff.actions.model.Insert;
+import com.github.gumtreediff.actions.model.Move;
 import com.github.gumtreediff.actions.model.TreeDelete;
 import com.github.gumtreediff.actions.model.TreeInsert;
 import com.github.gumtreediff.gen.jdt.JdtTreeGenerator;
@@ -50,6 +52,10 @@ import com.github.gumtreediff.matchers.Matchers;
 import com.github.gumtreediff.tree.ITree;
 import com.github.gumtreediff.tree.TreeUtils;
 
+import ch.uzh.ifi.seal.changedistiller.ChangeDistiller;
+import ch.uzh.ifi.seal.changedistiller.ChangeDistiller.Language;
+import ch.uzh.ifi.seal.changedistiller.distilling.FileDistiller;
+import ch.uzh.ifi.seal.changedistiller.model.entities.SourceCodeChange;
 import net.sf.jsefa.Deserializer;
 import net.sf.jsefa.Serializer;
 import net.sf.jsefa.csv.CsvIOFactory;
@@ -231,7 +237,7 @@ public class Test {
 
 		ArrayList<Method> methods;
 
-		ASTParser parser = ASTParser.newParser(AST.JLS11);
+		ASTParser parser = ASTParser.newParser(AST.JLS3);
 		final Map<String,String> options = JavaCore.getOptions();
 		//caution. to calculateIDMethod http://www.nextdesign.co.jp/tips/tips_eclipse_jdt.html
 		options.put(JavaCore.COMPILER_COMPLIANCE, JavaCore.VERSION_1_6);
@@ -368,7 +374,6 @@ public class Test {
 						& dateFrom<commit.date
 						& commit.date<dateUntil) {
 					commits.add(commit);
-					if(commit.type==0)break;
 				}
 			}
 
@@ -402,19 +407,55 @@ public class Test {
 			for(int i=0;i<commits.size();i++) {
 				sourcePrev= "public class Test{"+commits.get(i).sourceOld+"}";
 				sourceCurrent ="public class Test{"+commits.get(i).sourceNew+"}";
+
+				File left = File.createTempFile("left", ".suffix");
+				FileWriter filewriter = new FileWriter(left);
+				filewriter.write(sourcePrev);
+				filewriter.close();
+
+				File right = File.createTempFile("right", ".suffix");
+				filewriter = new FileWriter(right);
+				filewriter.write(sourceCurrent);
+				filewriter.close();
+
+				FileDistiller distiller = ChangeDistiller.createFileDistiller(Language.JAVA);
+				try {
+				    distiller.extractClassifiedSourceCodeChanges(left, right);
+				} catch(Exception e) {
+				    /* An exception most likely indicates a bug in ChangeDistiller. Please file a
+				       bug report at https://bitbucket.org/sealuzh/tools-changedistiller/issues and
+				       attach the full stack trace along with the two files that you tried to distill. */
+				    System.err.println("Warning: error while change distilling. " + e.getMessage());
+				}
+
+				List<SourceCodeChange> changes = distiller.getSourceCodeChanges();
+				if(changes != null) {
+				    for(SourceCodeChange change : changes) {
+				        // see Javadocs for more information
+				    }
+					continue;
+
+				}else {
+
+				}
+
+
+
 				iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
 				iTreeCurrent = jdtTreeGenerator.generateFrom().string(sourceCurrent).getRoot();
 				Matcher defaultMatcher = Matchers.getInstance().getMatcher();
 				MappingStore mappings = defaultMatcher.match(iTreePrev, iTreeCurrent);
 				EditScriptGenerator editScriptGenerator = new SimplifiedChawatheScriptGenerator();
 				EditScript actions = editScriptGenerator.computeActions(mappings);
+				if(actions.size()==0)continue;
 				List<Action> listAction = new ArrayList<>();
 				actions.iterator().forEachRemaining(listAction::add);
 				listAction.sort((a, b)->a.getNode().getPos()-b.getNode().getPos());
-				int[] rangeInserted=new int[2];
-				int[] rangeDeleted=new int[2];
-				if(listAction.size()==0)continue;
-				authors.add(commits.get(i).author);
+				ArrayList<Integer[]> rangeUpdate = new ArrayList<Integer[]>();
+				ArrayList<Integer[]> rangeMoveFrom = new ArrayList<Integer[]>();
+				ArrayList<Integer[]> rangeMoveTo = new ArrayList<Integer[]>();
+				ArrayList<Integer[]> rangeInsert = new ArrayList<Integer[]>();
+				ArrayList<Integer[]> rangeDelete = new ArrayList<Integer[]>();
 				int stmtAdded=0;
 				int stmtDeleted=0;
 				int churn=0;
@@ -422,27 +463,9 @@ public class Test {
 				int cond=0;
 				int elseAdded=0;
 				int elseDeleted=0;
-				for(Action action: listAction) {
-					switch(action.getName()){
-					case "insert-node":{
-						if(rangeInserted[0]<=action.getNode().getPos() & action.getNode().getEndPos()<=rangeInserted[1]) {
-							break;
-						}
-						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Insert) action).getNode());
-						while(childs.hasNext()) {
-							ITree child=childs.next();
-							if(statements.contains(child.getType().toString())) {
-								stmtAdded++;
-							}
-							if(child.getType().toString().equals("IfStatement")) {
-								if(child.getChildren().size()==3) {
-								    elseAdded++;
-								}
-							    if(child.getParent().getType().toString().equals("IfStatement")) {
-							        elseAdded++;
-						        }
-							}
-						}
+				for(Action action: listAction) {//update
+					if(action.getName().equals("update-node")) {
+						if(isValidate(action, "update-node"))continue;
 						List<ITree> parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("Block")) {
@@ -451,7 +474,6 @@ public class Test {
 								decl++;
 							}
 						}
-						parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("InfixExpression")) {
 								List<ITree> childsInfixExpression=parent.getChildren();
@@ -464,34 +486,12 @@ public class Test {
 								}
 							}
 						}
-						if(action.getNode().getType().toString().equals("Block")) {
-							if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
-								elseAdded++;
-							}
-						}
-						rangeInserted[0]=action.getNode().getPos();
-						rangeInserted[1]=action.getNode().getEndPos();
-						break;
+						rangeUpdate.add(new Integer[]{action.getNode().getPos(),action.getNode().getEndPos()});
 					}
-					case "insert-tree":{
-						if(rangeInserted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeInserted[1]) {
-							break;
-						}
-						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeInsert) action).getNode());
-						while(childs.hasNext()) {
-							ITree child=childs.next();
-							if(statements.contains(child.getType().toString())) {
-								stmtAdded++;
-							}
-							if(child.getType().toString().equals("IfStatement")) {
-								if(child.getChildren().size()==3) {
-								    elseAdded++;
-								}
-							    if(child.getParent().getType().toString().equals("IfStatement")) {
-							        elseAdded++;
-						        }
-							}
-						}
+				}
+				for(Action action: listAction) {//move
+					if(action.getName().equals("move-tree")) {
+						if(isValidate(action, "move-tree"))continue;
 						List<ITree> parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("Block")) {
@@ -500,7 +500,6 @@ public class Test {
 								decl++;
 							}
 						}
-						parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("InfixExpression")) {
 								List<ITree> childsInfixExpression=parent.getChildren();
@@ -513,14 +512,13 @@ public class Test {
 								}
 							}
 						}
-						rangeInserted[0]=action.getNode().getPos();
-						rangeInserted[1]=action.getNode().getEndPos();
-						break;
+						rangeMoveFrom.add(new Integer[] {action.getNode().getPos(), action.getNode().getEndPos()});
+						rangeMoveTo.add(new Integer[] {((Move)action).getParent().getPos(), ((Move)action).getParent().getEndPos()});
 					}
-					case "delete-node":{
-						if(rangeDeleted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeDeleted[1]) {
-							break;
-						}
+				}
+				for(Action action: listAction) {//delete
+					if(action.getName().equals("delete-node")) {
+						if(isValidate(action, "delete-node"))continue;
 						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Delete) action).getNode());
 						while(childs.hasNext()) {
 							ITree child=childs.next();
@@ -529,11 +527,11 @@ public class Test {
 							}
 							if(child.getType().toString().equals("IfStatement")) {
 								if(child.getChildren().size()==3) {
-								    elseDeleted++;
+									elseDeleted++;
 								}
-							    if(child.getParent().getType().toString().equals("IfStatement")) {
-							        elseDeleted++;
-						        }
+								if(child.getParent().getType().toString().equals("IfStatement")) {
+									elseDeleted++;
+								}
 							}
 						}
 						List<ITree> parents=action.getNode().getParents();
@@ -557,14 +555,9 @@ public class Test {
 								}
 							}
 						}
-						rangeDeleted[0]=action.getNode().getPos();
-						rangeDeleted[1]=action.getNode().getEndPos();
-						break;
-					}
-					case "delete-tree":{
-						if(rangeDeleted[0]<=action.getNode().getPos()&action.getNode().getEndPos()<=rangeDeleted[1]) {
-							break;
-						}
+						rangeDelete.add(new Integer[] {action.getNode().getPos(), action.getNode().getEndPos()});
+					}else if(action.getName().equals("delete-tree")) {
+						if(isValidate(action, "delete-tree"))continue;
 						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeDelete) action).getNode());
 						while(childs.hasNext()) {
 							ITree child=childs.next();
@@ -573,11 +566,11 @@ public class Test {
 							}
 							if(child.getType().toString().equals("IfStatement")) {
 								if(child.getChildren().size()==3) {
-								    elseDeleted++;
+									elseDeleted++;
 								}
-							    if(child.getParent().getType().toString().equals("IfStatement")) {
-							        elseDeleted++;
-						        }
+								if(child.getParent().getType().toString().equals("IfStatement")) {
+									elseDeleted++;
+								}
 							}
 						}
 						List<ITree> parents=action.getNode().getParents();
@@ -606,11 +599,27 @@ public class Test {
 								elseDeleted++;
 							}
 						}
-						rangeDeleted[0]=action.getNode().getPos();
-						rangeDeleted[1]=action.getNode().getEndPos();
-						break;
+						rangeDelete.add(new Integer[] {action.getNode().getPos(), action.getNode().getEndPos()});
 					}
-					case "move-tree":{
+				}
+				for(Action action: listAction) {//insert
+					if(action.getName().equals("insert-node")) {
+						if(isValidate(action, "insert-node"))continue;
+						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((Insert) action).getNode());
+						while(childs.hasNext()) {
+							ITree child=childs.next();
+							if(statements.contains(child.getType().toString())) {
+								stmtAdded++;
+							}
+							if(child.getType().toString().equals("IfStatement")) {
+								if(child.getChildren().size()==3) {
+									elseAdded++;
+								}
+								if(child.getParent().getType().toString().equals("IfStatement")) {
+									elseAdded++;
+								}
+							}
+						}
 						List<ITree> parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("Block")) {
@@ -619,6 +628,7 @@ public class Test {
 								decl++;
 							}
 						}
+						parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("InfixExpression")) {
 								List<ITree> childsInfixExpression=parent.getChildren();
@@ -631,9 +641,29 @@ public class Test {
 								}
 							}
 						}
-						break;
-					}
-					case "update-node":{
+						if(action.getNode().getType().toString().equals("Block")) {
+							if(action.getNode().getParent().getType().toString().equals("IfStatement")) {
+								elseAdded++;
+							}
+						}
+						rangeInsert.add(new Integer[] {action.getNode().getPos(), action.getNode().getEndPos()});
+					}else if(action.getName().equals("insert-tree")) {
+						if(isValidate(action, "insert-tree"))continue;
+						Iterator<ITree> childs=TreeUtils.breadthFirstIterator(((TreeInsert) action).getNode());
+						while(childs.hasNext()) {
+							ITree child=childs.next();
+							if(statements.contains(child.getType().toString())) {
+								stmtAdded++;
+							}
+							if(child.getType().toString().equals("IfStatement")) {
+								if(child.getChildren().size()==3) {
+									elseAdded++;
+								}
+								if(child.getParent().getType().toString().equals("IfStatement")) {
+									elseAdded++;
+								}
+							}
+						}
 						List<ITree> parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("Block")) {
@@ -642,6 +672,7 @@ public class Test {
 								decl++;
 							}
 						}
+						parents=action.getNode().getParents();
 						for(ITree parent : parents) {
 							if(parent.getType().toString().equals("InfixExpression")) {
 								List<ITree> childsInfixExpression=parent.getChildren();
@@ -654,15 +685,12 @@ public class Test {
 								}
 							}
 						}
-						break;
-					}
-					default:{
-						break;
-					}
+						rangeInsert.add(new Integer[] {action.getNode().getPos(), action.getNode().getEndPos()});
 					}
 				}
 				churn=stmtAdded-stmtDeleted;
 				methodHistories++;
+				authors.add(commits.get(i).author);
 				stmtAddeds.add(stmtAdded);
 				stmtDeleteds.add(stmtDeleted);
 				churns.add(churn);
@@ -691,6 +719,26 @@ public class Test {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+
+
+
+	private static boolean isValidate(Action action, String type) {
+		if(type.equals("update-node")) {
+
+		}else if(type.equals("move-tree")) {
+
+		}else if(type.equals("delete-node")) {
+
+		}else if(type.equals("delete-tree")) {
+
+		}else if(type.equals("insert-node")) {
+
+		}else if(type.equals("insert-tree")) {
+
+		}
+		return false;
 	}
 
 

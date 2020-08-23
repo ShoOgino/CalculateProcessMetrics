@@ -19,6 +19,12 @@
 			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
+		<attributes>
+			<attribute name="owner.project.facets" value="java"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/changedistiller-0.0.1-SNAPSHOT-jar-with-dependencies.jar"/>
 	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/Graftast-1.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/bcprov-jdk15on-1.61.jar"/>
 	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/bcpkix-jdk15on-1.61.jar"/>
@@ -124,18 +130,5 @@
 	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/trove4j-3.0.3.jar"/>
 	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/classindex-3.4.jar"/>
 	<classpathentry kind="lib" path="C:/Users/login/work/CalculateProcessMetrics/lib/simmetrics-core-3.2.3.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.core.contenttype_3.7.700.v20200517-1644.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.core.jobs_3.10.800.v20200421-0950.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.core.resources_3.13.700.v20200209-1624.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.core.runtime_3.18.0.v20200506-2143.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.equinox.common_3.11.0.v20200206-0817.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.equinox.preferences_3.7.700.v20191213-1901.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.jdt.core_3.21.50.v20200318-0850_BETA_JAVA14.jar" sourcepath="C:/Users/login/AppData/Local/Temp/.org.sf.feeling.decompiler1594520886666/source/eclipse_d38cd7425d90e0148ab29b64eb5f239e-1594521541236.jar"/>
-	<classpathentry kind="lib" path="C:/Users/login/work/pleiades/eclipse/plugins/org.eclipse.osgi_3.15.200.v20200214-1600.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
-		<attributes>
-			<attribute name="owner.project.facets" value="java"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

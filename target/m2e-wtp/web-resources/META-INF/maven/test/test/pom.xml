@@ -14,12 +14,36 @@
   <url>http://www.example.com</url>
 
   <properties>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
   </properties>
 
   <dependencies>
+<dependency>
+    <groupId>com.google.inject</groupId>
+    <artifactId>guice</artifactId>
+    <version>3.0</version>
+</dependency>
+<dependency>
+    <groupId>com.google.inject.extensions</groupId>
+    <artifactId>guice-assistedinject</artifactId>
+    <version>3.0</version>
+</dependency>
+<dependency>
+    <groupId>com.google.inject.extensions</groupId>
+    <artifactId>guice-multibindings</artifactId>
+    <version>3.0</version>
+</dependency>
+
+		<dependency>
+			<groupId>org.eclipse.jdt.core.compiler</groupId>
+			<artifactId>ecj</artifactId>
+			<version>4.2.2</version>
+		</dependency>
+
+
 <dependency>
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-lang3</artifactId>
@@ -37,6 +61,7 @@
     <artifactId>org.eclipse.jgit</artifactId>
     <version>5.8.1.202007141445-r</version>
 </dependency>
+
 
     <dependency>
       <groupId>javax.servlet</groupId>
