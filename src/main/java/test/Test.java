@@ -1,14 +1,21 @@
 package test;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,9 +50,14 @@ import com.github.gumtreediff.matchers.Matchers;
 import com.github.gumtreediff.tree.ITree;
 import com.github.gumtreediff.tree.TreeUtils;
 
+import net.sf.jsefa.Deserializer;
+import net.sf.jsefa.Serializer;
+import net.sf.jsefa.csv.CsvIOFactory;
+import net.sf.jsefa.csv.config.CsvConfiguration;
+
 public class Test {
 	private static final String idCommitLatest="81f7d184765b4b66d1483305014427da78ff487c";
-	private static final int NOReleases=3;
+	private static final int NOReleases=1;
 	private static int idRelease;
 	private static final String pathProject = "C:/Users/login/work/cassandra";
 	private static final String pathRepositoryMethod = pathProject+"/method";
@@ -53,80 +65,108 @@ public class Test {
 	private static final String pathInfoBug = pathProject+"/infoBug.json";
 	private static final String pathRevision2Date = pathProject + "/revision2Date.json";
 	private static final String pathRelease2Date = pathProject + "/release2Date.json";
-	private static final String pathHistoriesFile = pathProject + "/history.json";
+	private static final String pathHistoriesAllfile = pathProject + "/historiesAllfile.json";
 	private static final String pathPlugins="C:\\Users\\login\\work\\pleiades\\eclipse\\plugins";
 	private static String pathDataset;
-	private static HashMap<String, HistoryFile> historiesFile;
-	private static HashMap<String, Method> dataset;
+	private static HashMap<String, History> historiesAllfile=new HashMap<String, History>();
+	private static HashMap<String, Method> dataset = new HashMap<String, Method>();
 
 	public static void main(String[] args) {
-		for(idRelease=3;idRelease<=NOReleases;idRelease++) {
+		for(idRelease=1;idRelease<=NOReleases;idRelease++) {
 			pathRepositoryFile = pathProject+"/file"+idRelease;
 			pathDataset = pathProject+"/"+idRelease+".csv";
-            calculateDataset();
+			//loadDataset();
+			getCodeMetrics(dataset);
+			//getProcessMetrics(dataset);
+			//getIsBuggy(dataset);
+    		storeDataset();
 		}
 	}
 
 
-	private static void calculateDataset() {
+    private static void loadDataset() {
+		File file=new File(pathDataset);
+		if (file.exists()) {
+			try (FileInputStream fis = new FileInputStream(pathDataset);
+					InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
+					BufferedReader reader = new BufferedReader(isr)){
+				CsvConfiguration config = new CsvConfiguration();
+				config.setFieldDelimiter(',');
+				config.getSimpleTypeConverterProvider().registerConverterType(double.class, DoubleConverter.class);
+				Deserializer deserializer = CsvIOFactory.createFactory(config, Method.class).createDeserializer();
+				deserializer.open(reader);
+				while (deserializer.hasNext()) {
+					Method m = deserializer.next();
+				    dataset.put(m.path, m);
+				}
+				deserializer.close(true);
+			} catch (JsonParseException e) {
+				e.printStackTrace();
+			} catch (JsonMappingException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+    }
+
+    private static void storeDataset() {
 		try {
-			dataset = getDataset();
+			FileOutputStream fos= new FileOutputStream(pathDataset);
+			OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+			BufferedWriter writer = new BufferedWriter(osw);
+			CsvConfiguration config = new CsvConfiguration();
+			config.setFieldDelimiter(',');
+			config.getSimpleTypeConverterProvider().registerConverterType(double.class, DoubleConverter.class);
 			File csv = new File(pathDataset);
-			BufferedWriter bw = new BufferedWriter(new FileWriter(csv, true));
+		    Serializer serializer = CsvIOFactory.createFactory(config, Method.class).createSerializer();
+
+			serializer.open(writer);
 			for(String key: dataset.keySet()) {
 				Method method=dataset.get(key);
-				bw.write(
-						"\""+method.path + "\"" + ","+
-						method.isBuggy  + "," +
-
-						method.fanIN + ","+
-						method.fanOut +","+
-						method.parameters + "," +
-						method.localVar + "," +
-						method.commentRatio +","+
-						method.countPath + ","+
-						method.complexity + "," +
-						method.execStmt + "," +
-						method.maxNesting + "," +
-
-                        method.methodHistories + "," +
-                        method.authors + "," +
-                        method.stmtAdded + "," +
-                        method.maxStmtAdded + "," +
-                        method.avgStmtAdded + "," +
-                        method.stmtDeleted + "," +
-                        method.maxStmtDeleted + "," +
-                        method.avgStmtDeleted + "," +
-                        method.churn + "," +
-                        method.maxChurn + "," +
-                        method.avgChurn + "," +
-                        method.decl + "," +
-                        method.cond + "," +
-                        method.elseAdded + "," +
-                        method.elseDeleted
-				);
-				bw.newLine();
+				serializer.write(method);
 			}
-			bw.close();
+			serializer.close(true);
+			writer.close();
 		} catch (FileNotFoundException e) {
+			// TODO 自動生成された catch ブロック
 			e.printStackTrace();
 		} catch (IOException e) {
+			// TODO 自動生成された catch ブロック
 			e.printStackTrace();
 		}
-	}
+		LocalDateTime now = LocalDateTime.now();
+		DateTimeFormatter datetimeformatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+		String datetimeformated = datetimeformatter.format(now);
 
+		try {
+			FileOutputStream fos= new FileOutputStream(pathDataset+datetimeformated);
+			OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+			BufferedWriter writer = new BufferedWriter(osw);
+			CsvConfiguration config = new CsvConfiguration();
+			config.setFieldDelimiter(',');
+			config.getSimpleTypeConverterProvider().registerConverterType(double.class, DoubleConverter.class);
+			File csv = new File(pathDataset);
+		    Serializer serializer = CsvIOFactory.createFactory(config, Method.class).createSerializer();
 
-	private static HashMap<String, Method> getDataset() throws IOException {
-		HashMap<String, Method> dataset = new HashMap<String, Method>();
-		getCodeMetrics(dataset);
-		getProcessMetrics(dataset);
-		//getIsBuggy(dataset);
-		return dataset;
-	}
-
+			serializer.open(writer);
+			for(String key: dataset.keySet()) {
+				Method method=dataset.get(key);
+				serializer.write(method);
+			}
+			serializer.close(true);
+			writer.close();
+		} catch (FileNotFoundException e) {
+			// TODO 自動生成された catch ブロック
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO 自動生成された catch ブロック
+			e.printStackTrace();
+		}
+    }
 
     private static void getIsBuggy(HashMap<String, Method> dataset) {
-		String strHistory=readAll(pathHistoriesFile);
+		String strHistory=readAll(pathHistoriesAllfile);
 		String strRelease2Date=readAll(pathRelease2Date);
 		String strRevision2Date=readAll(pathRevision2Date);
 		ObjectMapper mapper = new ObjectMapper();
@@ -183,7 +223,6 @@ public class Test {
 			}
 		}
     }
-
 
 	private static void getCodeMetrics(HashMap<String, Method> dataset) {
 		final String[] sourcePathDirs = {};
@@ -263,13 +302,12 @@ public class Test {
 
 
 	private static void getProcessMetrics(HashMap<String, Method> dataset) {
-		String strHistory=readAll(pathHistoriesFile);
+		String strHistory=readAll(pathHistoriesAllfile);
 		String strRelease2Date=readAll(pathRelease2Date);
 		ObjectMapper mapper = new ObjectMapper();
-		HashMap<String, HistoryFile> history = null;
 		HashMap<String, Integer> release2Date=null;
 		try {
-			history = mapper.readValue(strHistory, new TypeReference<HashMap<String, HistoryFile>>() {});
+			historiesAllfile = mapper.readValue(strHistory, new TypeReference<HashMap<String, History>>() {});
 			release2Date=mapper.readValue(strRelease2Date, new TypeReference<HashMap<String, Integer>>() {});
 		} catch (JsonParseException e) {
 			e.printStackTrace();
@@ -278,47 +316,62 @@ public class Test {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+
 		int count=0;
 		int allFiles=dataset.size();
 		int dateFrom=release2Date.get(Integer.toString(idRelease-1));
 		int dateUntil=release2Date.get(Integer.toString(idRelease));
 
 
-		HistoryFile tmp=null;
+		History tmp=null;
 		List<Commit> commits=null;
-		for(String key: dataset.keySet()) {
-			commits=new ArrayList<Commit>();
-			//if(!key.equals("src/java/org/apache/cassandra/db/commitlog/CommitLog.LogRecordAdder#run().mjava"))continue;
+		for(String path: dataset.keySet()) {
 			count++;
-			System.out.println(count+"/"+allFiles);
-			System.out.println(key);
-			tmp=history.get(key);
-			if(tmp==null)continue;
-			tmp.commits.sort((a, b)->a.date-b.date);
-			int i=tmp.commits.size()-1;
-			do{
-				if(tmp.commits.get(i).date  < release2Date.get(Integer.toString(idRelease-1))
-					| release2Date.get(Integer.toString(idRelease))<tmp.commits.get(i).date
-					| (0<commits.size() && commits.get(0).date < tmp.commits.get(i).date)) {
-					i--;
-				}else {
-					if(tmp.commits.get(i).type==0) {
-						commits.add(0,tmp.commits.get(i));
-				        commits.get(0).isMerge=false;
+			System.out.println(count+ "/" + dataset.keySet().size());
+			History history=historiesAllfile.get(path);
+			HashSet<Commit> nodes=new HashSet<Commit>();
+			HashMap<String, ArrayList<String>> edges= new HashMap<String, ArrayList<String>>();
+			HashMap<String, ArrayList<String>> edgesReverse= new HashMap<String, ArrayList<String>>();
+			ArrayList<String[]> toBeSearched = new ArrayList<String[]>();
+			String[] tmp0=new String[2];
+			tmp0[0]=path;
+			tmp0[1]=history.nodes.get(history.nodes.size()-1).id;
+			toBeSearched.add(tmp0);
+			while(0<toBeSearched.size()) {
+				History historyTmp=historiesAllfile.get(toBeSearched.get(0)[0]);
+				for(int i=historyTmp.nodes.size()-1; 0<=i; i--) {
+					if(historyTmp.nodes.get(i).id.equals(toBeSearched.get(0)[1])) {
+						for(int j=i;0<=j;j--) {
+							Commit commit=historyTmp.nodes.get(j);
+							if(commit.type==1 | commit.type==2) {
+								String[] tmp1=new String[2];
+								tmp1[0]=commit.pathOld;
+								tmp1[1]=commit.id;
+								toBeSearched.add(tmp1);
+							    edgesReverse.put(commit.id, historyTmp.edgesReverse.get(commit.id));
+							}else {
+							    nodes.add(commit);
+							    edges.put(commit.id, historyTmp.edges.get(commit.id));
+							    if(!edgesReverse.keySet().contains(commit.id))edgesReverse.put(commit.id, historyTmp.edgesReverse.get(commit.id));
+							}
+						}
 						break;
 					}
-			        if(tmp.commits.get(i).type==1) {
-				        commits.add(0,tmp.commits.get(i));
-    		    		tmp=history.get(tmp.commits.get(i).pathOld);
-    					tmp.commits.sort((a, b)->a.date-b.date);
-		    		    i=tmp.commits.size()-1;
-		    	    }else {
-			            commits.add(0, tmp.commits.get(i));
-		    	        i--;
-		    	    }
 				}
-		    }while(0<=i);
-			getA(dataset.get(key), commits);
+				toBeSearched.remove(0);
+			}
+
+			commits=new ArrayList<Commit>();
+			for(Commit commit: nodes) {
+				if(history.pathCommit.contains(commit.id)
+						& dateFrom<commit.date
+						& commit.date<dateUntil) {
+					commits.add(commit);
+				}
+			}
+
+			getA(dataset.get(path), commits);
 		}
 	}
 

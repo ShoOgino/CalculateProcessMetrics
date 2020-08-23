@@ -1,23 +1,28 @@
 package test;
 
-public class Commit {
+import java.util.ArrayList;
+
+import org.eclipse.jgit.revwalk.RevCommit;
+
+public class Commit{
 	public String id;
 	public int date;
-	public int type;///0:add, 1: rename, 2:copy, 3: modify,  4:delete
+	public int type;//0:add, 1: rename, 2:copy, 3: modify,  4:delete, 5:renamed, 6: copied
 	public String author;
 	public boolean isMerge;
-	public String sourceNew;
-	public String sourceOld;
 	public String pathNew;
 	public String pathOld;
-	public String[] bugFix;
+	public String sourceNew;
+	public String sourceOld;
+	public String[] bugFix=null;
+	public boolean isBuggy;
+	public ArrayList<String> nexts=new ArrayList<String>();
+	public RevCommit revCommit;
 
-	int stmtAdded=0;
-	int stmtDeleted=0;
-	int churn=0;
-	int decl=0;
-	int cond=0;
-	int elseAdded=0;
-	int elseDeleted=0;
+	public Commit() {
+	}
 
+	public Commit(RevCommit revCommit) {
+		this.revCommit=revCommit;
+	}
 }

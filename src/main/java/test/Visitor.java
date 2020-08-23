@@ -196,11 +196,11 @@ public class Visitor extends ASTVisitor {
 		    }
 		    if(inComment) {
     		    CountLineComment++;
-		    }else if(line.matches(".*//.*|.*/\\*.*")) {
+		    }else if(line.matches(".*//.*")) {
 				CountLineComment++;
-				if(line.matches(".*/\\*.*")){
-					inComment=true;
-				}
+		    }else if(line.matches(".*/\\*.*")){
+		    	CountLineComment++;
+		    	inComment=true;
 			}
 			if(!inComment & !line.matches("\\s*|\\s*//.*|\\s*/\\*.*|.*\\*/.*")) {
 	    	    CountLineCode++;
@@ -209,7 +209,7 @@ public class Visitor extends ASTVisitor {
 		if(CountLineCode==0) {
 			CountLineCode=1;
 		}
-   		return (float) CountLineComment/ (float)CountLineCode;
+   		return (float) CountLineComment/ (float)(CountLineCode+CountLineComment);
     }
 
 
