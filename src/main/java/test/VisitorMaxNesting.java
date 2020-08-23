@@ -6,6 +6,7 @@ import java.util.List;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.Statement;
@@ -46,6 +47,16 @@ public class VisitorMaxNesting extends ASTVisitor {
 		return false;
 	}
 	public boolean visit(ForStatement node) {
+		Statement statement=node.getBody();
+		VisitorMaxNesting visitor=new VisitorMaxNesting();
+		statement.accept(visitor);
+		if(maxNesting<visitor.maxNesting+1) {
+			maxNesting=visitor.maxNesting+1;
+		}
+	    return false;
+	}
+
+	public boolean visit(EnhancedForStatement node) {
 		Statement statement=node.getBody();
 		VisitorMaxNesting visitor=new VisitorMaxNesting();
 		statement.accept(visitor);

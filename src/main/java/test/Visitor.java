@@ -145,7 +145,6 @@ public class Visitor extends ASTVisitor {
 		node.accept(visitorComplexity);
 		method.complexity=visitorComplexity.complexity;
 
-		//need to fix
 		VisitorExecStmt visitorStatement =new VisitorExecStmt();
 		if(node.getBody().statements().size()>0) {
 			((ASTNode) node.getBody().statements().get(0)).accept(visitorStatement);
@@ -153,7 +152,6 @@ public class Visitor extends ASTVisitor {
 		}else {
 			method.execStmt=0;
 		}
-
 
 		VisitorMaxNesting visitorMaxNesting =new VisitorMaxNesting();
 		node.accept(visitorMaxNesting);
@@ -193,23 +191,26 @@ public class Visitor extends ASTVisitor {
 		    if(line.matches(".*\\*/.*")) {
     			inComment=false;
     			CountLineComment++;
-		    }
-		    if(inComment) {
+		    }else if(inComment) {
     		    CountLineComment++;
-		    }else if(line.matches(".*//.*")) {
-				CountLineComment++;
 		    }else if(line.matches(".*/\\*.*")){
 		    	CountLineComment++;
 		    	inComment=true;
+		    }else if(line.matches(".*//.*")) {
+				CountLineComment++;
 			}
-			if(!inComment & !line.matches("\\s*|\\s*//.*|\\s*/\\*.*|.*\\*/.*")) {
-	    	    CountLineCode++;
-			}
+
+			//if(!inComment & !line.matches("\\s*|\\s*//.*|\\s*/\\*.*|.*\\*/.*")) {
+	    	//    CountLineCode++;
+			//}
+		    if(!line.matches("\\s*")) {
+		    	CountLineCode++;
+		    }
 		}
 		if(CountLineCode==0) {
 			CountLineCode=1;
 		}
-   		return (float) CountLineComment/ (float)(CountLineCode+CountLineComment);
+   		return (float) CountLineComment/ (float)CountLineCode;
     }
 
 

@@ -75,9 +75,9 @@ public class Test {
 		for(idRelease=1;idRelease<=NOReleases;idRelease++) {
 			pathRepositoryFile = pathProject+"/file"+idRelease;
 			pathDataset = pathProject+"/"+idRelease+".csv";
-			//loadDataset();
-			getCodeMetrics(dataset);
-			//getProcessMetrics(dataset);
+			loadDataset();
+			//getCodeMetrics(dataset);
+			getProcessMetrics(dataset);
 			//getIsBuggy(dataset);
     		storeDataset();
 		}
@@ -368,6 +368,7 @@ public class Test {
 						& dateFrom<commit.date
 						& commit.date<dateUntil) {
 					commits.add(commit);
+					if(commit.type==0)break;
 				}
 			}
 
@@ -399,7 +400,6 @@ public class Test {
 			ITree iTreeCurrent=null;
 
 			for(int i=0;i<commits.size();i++) {
-				if(commits.get(i).type==4|commits.get(i).isMerge)continue;
 				sourcePrev= "public class Test{"+commits.get(i).sourceOld+"}";
 				sourceCurrent ="public class Test{"+commits.get(i).sourceNew+"}";
 				iTreePrev = jdtTreeGenerator.generateFrom().string(sourcePrev).getRoot();
