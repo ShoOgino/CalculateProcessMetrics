@@ -38,8 +38,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.gumtreediff.gen.jdt.JdtTreeGenerator;
-import com.github.gumtreediff.tree.ITree;
 
 import ch.uzh.ifi.seal.changedistiller.ChangeDistiller;
 import ch.uzh.ifi.seal.changedistiller.ChangeDistiller.Language;
@@ -47,6 +45,7 @@ import ch.uzh.ifi.seal.changedistiller.distilling.FileDistiller;
 import ch.uzh.ifi.seal.changedistiller.model.classifiers.ChangeType;
 import ch.uzh.ifi.seal.changedistiller.model.classifiers.EntityType;
 import ch.uzh.ifi.seal.changedistiller.model.entities.SourceCodeChange;
+import test.History;
 import net.sf.jsefa.Deserializer;
 import net.sf.jsefa.Serializer;
 import net.sf.jsefa.csv.CsvIOFactory;
@@ -72,9 +71,9 @@ public class Test {
 		for(idRelease=2;idRelease<=NOReleases;idRelease++) {
 			pathRepositoryFile = pathProject+"/file"+idRelease;
 			pathDataset = pathProject+"/"+idRelease+".csv";
-			//loadDataset();
-			getCodeMetrics(dataset);
-			//getProcessMetrics(dataset);
+			loadDataset();
+			//getCodeMetrics(dataset);
+			getProcessMetrics(dataset);
 			//getIsBuggy(dataset);
     		storeDataset();
 		}
@@ -220,7 +219,7 @@ public class Test {
 			}
 		}
     }
-
+/*
 	private static void getCodeMetrics(HashMap<String, Method> dataset) {
 		final String[] sourcePathDirs = {};
 		final String[] libs = getLibraries(pathRepositoryFile);
@@ -260,7 +259,6 @@ public class Test {
 		}
 	}
 
-
 	private static String[] getLibraries(String pathFile) {
 		Path[] dirs = new Path[]{
 				Paths.get(pathPlugins),
@@ -296,15 +294,12 @@ public class Test {
 		}
 		return sources;
 	}
-
-
+*/
 	private static void getProcessMetrics(HashMap<String, Method> dataset) {
-		String strHistory=readAll(pathHistoriesAllfile);
 		String strRelease2Date=readAll(pathRelease2Date);
-		ObjectMapper mapper = new ObjectMapper();
 		HashMap<String, Integer> release2Date=null;
+		ObjectMapper mapper = new ObjectMapper();
 		try {
-			historiesAllfile = mapper.readValue(strHistory, new TypeReference<HashMap<String, History>>() {});
 			release2Date=mapper.readValue(strRelease2Date, new TypeReference<HashMap<String, Integer>>() {});
 		} catch (JsonParseException e) {
 			e.printStackTrace();
@@ -313,6 +308,22 @@ public class Test {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		File file=new File(pathHistoriesAllfile);
+		if (file.exists()) {
+			try {
+				String strHistoriesAllfile=readAll(pathHistoriesAllfile);
+				mapper = new ObjectMapper();
+				historiesAllfile = mapper.readValue(strHistoriesAllfile, new TypeReference<HashMap<String, History>>() {});
+			} catch (JsonParseException e) {
+				e.printStackTrace();
+			} catch (JsonMappingException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
 
 
 		int count=0;
@@ -467,9 +478,6 @@ public class Test {
 				try {
 				    distiller.extractClassifiedSourceCodeChanges(left, right);
 				} catch(Exception e) {
-				    /* An exception most likely indicates a bug in ChangeDistiller. Please file a
-				       bug report at https://bitbucket.org/sealuzh/tools-changedistiller/issues and
-				       attach the full stack trace along with the two files that you tried to distill. */
 				    System.err.println("Warning: error while change distilling. " + e.getMessage());
 				}
 
@@ -540,7 +548,6 @@ public class Test {
 			e.printStackTrace();
 		}
 	}
-
 
 	public static String readAll(final String path){
 		String value=null;
